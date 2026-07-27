@@ -239,6 +239,16 @@
     font-size:.72rem; text-transform:uppercase; letter-spacing:.08em; color:var(--muted);
     margin:0 0 10px; font-weight:600;
   }
+  /* chaque section (plan et liste) se replie/déplie indépendamment, pour ne garder
+     ouvert que ce qui intéresse à l'instant */
+  .section-toggle{ cursor:pointer; list-style:none; }
+  .section-toggle::-webkit-details-marker{ display:none; }
+  .section-toggle h2::before{
+    content:"▸"; display:inline-block; font-size:.85em; color:var(--muted);
+    margin-right:6px; transition:transform .15s ease;
+  }
+  details[open] > .section-toggle h2::before{ transform:rotate(90deg); }
+  .section-toggle:hover h2{ color:var(--accent); }
   .board-attente-col{ grid-column:1 / -1; grid-row:1; }
   .board-test-col{ grid-column:1; grid-row:2; }
   .board-ab-col{ grid-column:1; grid-row:3; }
@@ -248,6 +258,18 @@
   #boardTest, #boardAB, #boardC{ display:flex; flex-direction:column; gap:8px; }
   #boardAttente{ display:flex; flex-wrap:wrap; gap:10px; max-width:420px; }
   #boardAttente .tile{ flex:1; min-width:150px; }
+
+  .lanceur{ min-height:82px; width:100%; }
+  .lanceur-fleche{ font-size:.62rem; color:var(--muted); margin-top:auto; }
+  .lanceur.actif{ outline:2px solid var(--accent); outline-offset:1px; }
+
+  .retour-btn{ margin-bottom:12px; }
+  .palettier-grille{ display:flex; flex-direction:column; gap:16px; }
+  .palettier-rack-titre{
+    font-size:.68rem; text-transform:uppercase; letter-spacing:.05em; color:var(--muted);
+    margin:0 0 6px; font-weight:700;
+  }
+  .palettier-rack-tiles{ display:grid; grid-template-columns:repeat(auto-fill, minmax(96px, 1fr)); gap:6px; }
 
   .pair-box, .quad-box, .row-box{
     border:1px solid var(--line); border-radius:8px; box-shadow:var(--shadow); overflow:hidden;
@@ -486,13 +508,15 @@
 
   <div class="content-layout">
     <aside class="affaires-sidebar">
-      <h2><span id="sidebarTitle">Affaires en cours</span> <span class="sidebar-count-badge" id="sidebarCount">0</span></h2>
-      <div class="sidebar-tabs">
-        <button type="button" class="sidebar-tab active" id="tabAffaires">Par affaire</button>
-        <button type="button" class="sidebar-tab" id="tabCableurs">Charge par câbleur</button>
-      </div>
-      <p class="sidebar-hint" id="sidebarHint">Attente d'abord, puis préparation, zones de test à la fin.</p>
-      <div class="sidebar-list" id="sidebarList"></div>
+      <details open>
+        <summary class="section-toggle"><h2><span id="sidebarTitle">Affaires en cours</span> <span class="sidebar-count-badge" id="sidebarCount">0</span></h2></summary>
+        <div class="sidebar-tabs">
+          <button type="button" class="sidebar-tab active" id="tabAffaires">Par affaire</button>
+          <button type="button" class="sidebar-tab" id="tabCableurs">Charge par câbleur</button>
+        </div>
+        <p class="sidebar-hint" id="sidebarHint">Attente d'abord, puis préparation, zones de test à la fin.</p>
+        <div class="sidebar-list" id="sidebarList"></div>
+      </details>
       <details class="sidebar-historique">
         <summary>Historique (clôturées) <span class="sidebar-count-badge" id="historiqueCount">0</span></summary>
         <div class="sidebar-list" id="historiqueList"></div>
@@ -500,26 +524,26 @@
     </aside>
 
     <main class="factory-board">
-      <div class="board-attente-col">
-        <h2>Attente — réceptionné, affaire pas encore lancée</h2>
+      <details class="board-attente-col" open>
+        <summary class="section-toggle"><h2>Attente — réceptionné, affaire pas encore lancée</h2></summary>
         <div id="boardAttente"></div>
-      </div>
-      <div class="board-test-col">
-        <h2>Zones de test</h2>
+      </details>
+      <details class="board-test-col" id="boardTestDetails" open>
+        <summary class="section-toggle"><h2 id="boardTestTitle">Zones de test</h2></summary>
         <div id="boardTest"></div>
-      </div>
-      <div class="board-c-col">
-        <h2>Allée C</h2>
+      </details>
+      <details class="board-c-col" open>
+        <summary class="section-toggle"><h2>Allée C</h2></summary>
         <div id="boardC"></div>
-      </div>
-      <div class="board-ab-col">
-        <h2>Allées A · B</h2>
+      </details>
+      <details class="board-ab-col" open>
+        <summary class="section-toggle"><h2>Allées A · B</h2></summary>
         <div id="boardAB"></div>
-      </div>
-      <div class="board-bottom-wrap">
-        <h2>Blocs T · I</h2>
+      </details>
+      <details class="board-bottom-wrap" open>
+        <summary class="section-toggle"><h2>Blocs T · I</h2></summary>
         <div class="board-bottom" id="boardBottom"></div>
-      </div>
+      </details>
     </main>
   </div>
 
@@ -529,11 +553,16 @@
     la colonne C séparée à droite (décalée pour démarrer au niveau de A/B, comme sur le papier, sans boîte de test
     au-dessus), et en bas à gauche les blocs T et I en 2 colonnes de petites boîtes à 2 cases. Les 3 boîtes bleues
     du haut n'avaient que deux repères visibles (E1–E4) ; j'ai ajouté E5/E6 par défaut pour la troisième, à
-    renommer si besoin. Le Palettier et le Module (zones d'attente, en haut) et toute leur logique n'existaient
+    renommer si besoin. Le Palettier et le Modula (zones d'attente, en haut) et toute leur logique n'existaient
     pas sur le plan papier, ils traduisent le vrai geste de la réception : stocker le matériel avant que l'affaire
-    ne soit lancée. Les numéros d'affaires (format A2600 + 3 chiffres), leur nombre par zone, les 6 chargés
-    d'affaires et les 6 câbleurs affectés sont inventés au hasard pour le test, pas recopiés du plan papier. Les
-    données restent uniquement dans ce navigateur pour l'instant (rien n'est partagé ni sauvegardé ailleurs).
+    ne soit lancée. Cliquer sur Palettier ou Modula replie les zones de test et affiche le détail à la place ;
+    le Palettier a de vrais emplacements numérotés (rack + niveau + position, ex. A001, A101), avec l'hypothèse
+    à confirmer sur place de 4 racks (A-D), 3 niveaux et 2 positions par niveau ; le Modula n'a pas de détail
+    d'emplacement (le rangement interne n'a pas besoin d'être suivi à la main). Chaque section du plan et de la
+    liste se replie/déplie indépendamment. Les numéros d'affaires (format A2600 + 3 chiffres), leur nombre par
+    zone, les 6 chargés d'affaires et les 6 câbleurs affectés sont inventés au hasard pour le test, pas recopiés
+    du plan papier. Les données restent uniquement dans ce navigateur pour l'instant (rien n'est partagé ni
+    sauvegardé ailleurs).
   </footer>
 </div>
 
@@ -580,8 +609,23 @@
 (function(){
   "use strict";
 
+  // Palettier : vrai rangement à emplacements numérotés (rack + niveau + position).
+  // Hypothèse à confirmer sur place : 4 racks (A-D), 3 niveaux (0=sol), 2 positions par niveau.
+  var PALETTIER_RACKS = ["A", "B", "C", "D"];
+  var PALETTIER_NIVEAUX = 3;
+  var PALETTIER_POSITIONS = 2;
+  var PALETTIER_CODES = [];
+  PALETTIER_RACKS.forEach(function(rack){
+    for(var niveau = 0; niveau < PALETTIER_NIVEAUX; niveau++){
+      for(var pos = 1; pos <= PALETTIER_POSITIONS; pos++){
+        PALETTIER_CODES.push(rack + niveau + String(pos).padStart(2, "0"));
+      }
+    }
+  });
+
   var GROUPS = [
-    { name:"Attente (réception)", type:"attente", codes:["PALETTIER","MODULE"] },
+    { name:"Attente — Palettier", type:"attente", codes: PALETTIER_CODES },
+    { name:"Attente — Modula", type:"attente", codes:["MODULA"] },
     { name:"Zones de test", type:"test", codes:["E1","E2","E3","E4","E5","E6"] },
     { name:"Préparation — colonne A", type:"prep", codes:["A10","A9","A8","A7","A6","A5","A4","A3","A2","A1"] },
     { name:"Préparation — colonne B", type:"prep", codes:["B10","B9","B8","B7","B6","B5","B4","B3","B2","B1"] },
@@ -596,14 +640,14 @@
     g.codes.forEach(function(c){ ALL_ZONES.push(c); ZONE_TYPE[c] = g.type; });
   });
 
-  var STORAGE_KEY = "plan-zones-croquis-v4";
+  var STORAGE_KEY = "plan-zones-croquis-v5";
 
   var NAMES = ["Julien Marchand", "Camille Rousseau", "Nicolas Perrin", "Sophie Lambert", "Thomas Girard", "Élise Fontaine"];
   var CABLEURS = ["Karim Haddad", "Yohann Le Gall", "Damien Roussel", "Fabrice Morin", "Anthony Le Bris", "Mickaël Renard"];
 
   // nombre d'affaires inventé par zone (beaucoup à 0, comme sur le plan papier)
   var ZONE_SEED_COUNTS = [
-    ["PALETTIER",2], ["MODULE",1],
+    ["A001",1], ["A101",1], ["B001",1], ["MODULA",2],
     ["E1",3], ["E2",2], ["E3",4], ["E4",1], ["E5",0], ["E6",2],
     ["A10",0], ["A9",2], ["A8",1], ["A7",2], ["A6",3], ["A5",1], ["A4",1], ["A3",3], ["A2",2], ["A1",1],
     ["B10",0], ["B9",1], ["B8",0], ["B7",1], ["B6",0], ["B5",1], ["B4",1], ["B3",2], ["B2",2], ["B1",1],
@@ -729,6 +773,7 @@
   var openZone = null;
   var filterText = "";
   var sidebarView = "affaires";
+  var attenteDetail = null; // null | "palettier" | "modula"
 
   function uid(){ return "a-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2,7); }
 
@@ -793,7 +838,6 @@
   // - C : colonne à part, décalée à droite, même principe que E (à une colonne)
   // - T/I : en bas à gauche, 2 colonnes de petites boîtes à 2 cases côte à côte
   var BOARD = {
-    attente: ["PALETTIER","MODULE"],
     test: ["E1","E2","E3","E4","E5","E6"],
     ab: [
       ["A10","B10","A9","B9"],
@@ -837,14 +881,83 @@
     return box;
   }
 
-  function renderBoard(){
-    var attenteWrap = document.getElementById("boardAttente");
-    attenteWrap.innerHTML = "";
-    BOARD.attente.forEach(function(code){ attenteWrap.appendChild(renderTile(code, "attente")); });
+  function compterAffairesActives(codes){
+    return codes.reduce(function(total, code){ return total + affairesInZone(code).length; }, 0);
+  }
 
-    var testWrap = document.getElementById("boardTest");
-    testWrap.innerHTML = "";
-    chunk(BOARD.test, 2).forEach(function(pair){ testWrap.appendChild(renderPairBox(pair)); });
+  // les deux "lanceurs" Palettier / Modula : pas des zones réelles pour Palettier (qui en
+  // regroupe 24), donc un composant à part plutôt que renderTile ; le clic replie/déplie
+  // le détail à la place des zones de test, il n'ouvre jamais le panneau latéral directement
+  function renderLanceur(titre, codes, cle){
+    var total = compterAffairesActives(codes);
+    var actif = attenteDetail === cle;
+    var btn = el("button", { type:"button", class:"tile attente lanceur" + (actif ? " actif" : "") }, [
+      el("span", { class:"code mono", text: titre }),
+      el("span", { class:"cableur", text: total + (total > 1 ? " affaires en attente" : " affaire en attente") }),
+      el("span", { class:"lanceur-fleche", text: actif ? "▲ replier" : "▼ voir le détail" })
+    ]);
+    btn.addEventListener("click", function(){
+      attenteDetail = actif ? null : cle;
+      renderBoard();
+    });
+    return btn;
+  }
+
+  function renderAttenteRow(){
+    var wrap = document.getElementById("boardAttente");
+    wrap.innerHTML = "";
+    wrap.appendChild(renderLanceur("Palettier", PALETTIER_CODES, "palettier"));
+    wrap.appendChild(renderLanceur("Modula", ["MODULA"], "modula"));
+  }
+
+  function boutonRetourAttente(){
+    var btn = el("button", { type:"button", class:"btn-ghost retour-btn", text:"◀ Retour aux zones de test" });
+    btn.addEventListener("click", function(){ attenteDetail = null; renderBoard(); });
+    return btn;
+  }
+
+  // le conteneur qui affiche normalement les zones de test montre, à la place,
+  // le détail du Palettier ou du Modula quand un lanceur est déplié
+  function renderZoneTestOuAttenteDetail(){
+    var titre = document.getElementById("boardTestTitle");
+    var wrap = document.getElementById("boardTest");
+    wrap.innerHTML = "";
+
+    // si la section "Zones de test" avait été repliée, on la rouvre pour que le détail
+    // Palettier/Modula qu'on vient d'afficher dedans soit bien visible
+    if(attenteDetail){ document.getElementById("boardTestDetails").open = true; }
+
+    if(attenteDetail === "palettier"){
+      titre.textContent = "Palettier — détail des emplacements";
+      wrap.appendChild(boutonRetourAttente());
+      var grille = el("div", { class:"palettier-grille" });
+      PALETTIER_RACKS.forEach(function(rack){
+        var codesRack = PALETTIER_CODES.filter(function(c){ return c.charAt(0) === rack; });
+        var tilesWrap = el("div", { class:"palettier-rack-tiles" });
+        codesRack.forEach(function(code){ tilesWrap.appendChild(renderTile(code, "attente")); });
+        grille.appendChild(el("div", { class:"palettier-rack" }, [
+          el("h3", { class:"palettier-rack-titre", text:"Rack " + rack }),
+          tilesWrap
+        ]));
+      });
+      wrap.appendChild(grille);
+      return;
+    }
+
+    if(attenteDetail === "modula"){
+      titre.textContent = "Modula — détail";
+      wrap.appendChild(boutonRetourAttente());
+      wrap.appendChild(renderTile("MODULA", "attente"));
+      return;
+    }
+
+    titre.textContent = "Zones de test";
+    chunk(BOARD.test, 2).forEach(function(pair){ wrap.appendChild(renderPairBox(pair)); });
+  }
+
+  function renderBoard(){
+    renderAttenteRow();
+    renderZoneTestOuAttenteDetail();
 
     var abWrap = document.getElementById("boardAB");
     abWrap.innerHTML = "";
@@ -866,7 +979,7 @@
     BOARD.ab.forEach(function(quad){ prep.push(quad[0], quad[1], quad[2], quad[3]); });
     prep = prep.concat(BOARD.c);
     BOARD.bottom.forEach(function(pair){ prep.push(pair[0], pair[1]); });
-    return BOARD.attente.concat(prep, BOARD.test);
+    return PALETTIER_CODES.concat(["MODULA"], prep, BOARD.test);
   })();
 
   function initialesDe(nom){

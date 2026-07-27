@@ -1,7 +1,7 @@
 // Volontairement PAS de self.skipWaiting() : une mise à jour ne prend effet qu'après
 // une fermeture COMPLETE de l'appli (pas juste la mettre en arrière-plan), sinon
 // l'ancien code continue de servir en silence (leçon apprise sur Stovo).
-var CACHE_NAME = "bcig-zones-v1";
+var CACHE_NAME = "bcig-zones-v2";
 var PRECACHE = [
   "./",
   "./index.html",
