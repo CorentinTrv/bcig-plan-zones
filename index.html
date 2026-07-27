@@ -355,6 +355,14 @@
     flex:1; padding:6px 8px; border-radius:6px; border:1px solid var(--line); background:var(--surface);
     font-size:.82rem; color:var(--ink);
   }
+  /* "CA" devant le champ chargé d'affaires : le placeholder seul disparaît une fois
+     rempli, ce petit repère fixe évite de confondre le nom avec autre chose (câbleur) */
+  .champ-avec-repere{ display:flex; align-items:center; gap:5px; flex:1; min-width:0; }
+  .mini-repere{
+    flex:none; font-size:.6rem; font-weight:800; letter-spacing:.02em; color:var(--accent);
+    background:color-mix(in srgb, var(--accent) 14%, var(--surface)); border-radius:4px; padding:1px 5px;
+    cursor:help;
+  }
   .affaire-row .row-actions{ display:flex; gap:6px; align-items:center; }
   .affaire-row select{
     padding:5px 6px; border-radius:6px; border:1px solid var(--line); background:var(--surface); font-size:.76rem; max-width:120px;
@@ -566,7 +574,7 @@
     zone, les 6 chargés d'affaires et les 6 câbleurs affectés sont inventés au hasard pour le test, pas recopiés
     du plan papier. Les données restent uniquement dans ce navigateur pour l'instant (rien n'est partagé ni
     sauvegardé ailleurs).
-    <p class="version-tag mono">Version v4 · 27/07/2026 · Affaires en cours sans l'attente, Allée C retirée</p>
+    <p class="version-tag mono">Version v5 · 27/07/2026 · Repère « CA » devant le chargé d'affaires</p>
   </footer>
 </div>
 
@@ -589,7 +597,7 @@
       <select id="addZone" class="cableur-input"></select>
     </div>
     <div class="modal-field">
-      <label class="field-label" for="addCharge">Chargé d'affaires (facultatif, à compléter plus tard si besoin)</label>
+      <label class="field-label" for="addCharge">CA — Chargé d'affaires (facultatif, à compléter plus tard si besoin)</label>
       <input type="text" id="addCharge" class="cableur-input" placeholder="Prénom Nom" />
     </div>
     <p class="modal-hint">Le câbleur ne se modifie que depuis sa zone (il est partagé par toutes les affaires qu'elle contient).</p>
@@ -1347,12 +1355,16 @@
         el("span", { class:"numero mono", text: a.numero }),
         el("span", { class:"age-badge " + classeAnciennete(a), text: texteAnciennete(a) })
       ]);
-      var chargeInput = el("input", { type:"text", class:"charge-input", placeholder:"Chargé d'affaires" });
+      var chargeInput = el("input", { type:"text", class:"charge-input", placeholder:"Nom du chargé d'affaires" });
       chargeInput.value = a.charge || "";
       chargeInput.addEventListener("change", function(){
         a.charge = chargeInput.value.trim(); saveState(); renderSidebar();
       });
-      top.appendChild(chargeInput);
+      var chargeGroup = el("span", { class:"champ-avec-repere" }, [
+        el("span", { class:"mini-repere", title:"Chargé d'affaires", text:"CA" }),
+        chargeInput
+      ]);
+      top.appendChild(chargeGroup);
 
       var actions = el("div", { class:"row-actions" });
       var move = zoneSelect(a.zone, function(newZone){
@@ -1379,8 +1391,12 @@
       el("label", { class:"field-label", text:"Ajouter une affaire dans " + code })
     ]);
     var numInput = el("input", { type:"text", placeholder:"N° d'affaire" });
-    var chargeInput2 = el("input", { type:"text", placeholder:"Chargé d'affaires" });
-    var row1 = el("div", { class:"row" }, [ numInput, chargeInput2 ]);
+    var chargeInput2 = el("input", { type:"text", placeholder:"Nom du chargé d'affaires" });
+    var chargeGroup2 = el("span", { class:"champ-avec-repere" }, [
+      el("span", { class:"mini-repere", title:"Chargé d'affaires", text:"CA" }),
+      chargeInput2
+    ]);
+    var row1 = el("div", { class:"row" }, [ numInput, chargeGroup2 ]);
     var addBtn = el("button", { type:"button", class:"btn-primary", text:"Ajouter l'affaire" });
     addBtn.addEventListener("click", function(){
       var numero = numInput.value.trim();
