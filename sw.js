@@ -3,7 +3,7 @@
 // le cache ne sert que de secours si le téléphone est hors-ligne.
 // skipWaiting + clients.claim : la mise à jour s'applique dès le prochain
 // chargement de la page, sans attendre une fermeture complète de l'appli.
-var CACHE_NAME = "bcig-zones-v9";
+var CACHE_NAME = "bcig-zones-v10";
 var PRECACHE = [
   "./",
   "./index.html",

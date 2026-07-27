@@ -627,13 +627,15 @@
     zone, les 6 chargés d'affaires et les 6 câbleurs affectés sont inventés au hasard pour le test, pas recopiés
     du plan papier. Bouton « Commande » sur chaque affaire (dans sa zone), coloré rouge tant que rien n'est
     saisi, orange s'il manque des articles, vert quand tout est reçu : bon de commande et BL peuvent être
-    saisis à la main OU lus par photo (OCR local, gratuit, sans backend ni IA), les lignes détectées restent
-    éditables avant tout ajout. Reste à livrer calculé tout seul, rappelé dans la recherche du haut.
+    saisis à la main OU lus par photo (OCR local, gratuit, sans backend ni IA). La lecture repère les
+    en-têtes de colonnes « Désignation » et « Qté » (et synonymes usuels) sur la photo et ne lit QUE ce qui
+    est dessous ; si une colonne n'est pas trouvée, rien n'est deviné, un message le dit. Les lignes détectées
+    restent éditables avant tout ajout. Reste à livrer calculé tout seul, rappelé dans la recherche du haut.
     Convergence commande/BL faite au niveau de l'affaire entière, pas armoire par armoire (simplification
     volontaire du 27/07). La lecture photo ne fonctionne que sur le vrai site déployé, pas dans un aperçu
     Claude. Les données restent uniquement dans ce navigateur pour l'instant (rien n'est partagé ni
     sauvegardé ailleurs).
-    <p class="version-tag mono">Version v9 · 27/07/2026 · Lecture photo (OCR local), bouton Commande coloré</p>
+    <p class="version-tag mono">Version v10 · 27/07/2026 · Lecture photo par colonnes (Désignation / Qté)</p>
   </footer>
 </div>
 
@@ -1824,24 +1826,104 @@
     return tesseractChargement;
   }
 
-  // Première passe, à ajuster une fois testée sur un vrai bon de commande / BL BCIG :
-  // pour chaque ligne de texte détectée, on cherche le DERNIER nombre isolé (la quantité,
-  // avec une unité optionnelle style "u"/"pce"), et on garde ce qui précède comme article,
-  // en retirant un éventuel code référence en tête de ligne (lettres/chiffres/tirets courts).
-  function analyserLignesDocument(texteBrut){
-    var lignes = texteBrut.split("\n").map(function(l){ return l.trim(); }).filter(Boolean);
+  // Recherche STRICTE par en-tête de colonne (demande du 27/07, remplace l'ancienne
+  // devinette "dernier nombre de la ligne") : on repère les mots-titres "Désignation" et
+  // "Qté" (ou leurs synonymes usuels d'après une recherche sur les modèles de bons de
+  // commande/BL français), on prend leur position sur la photo, et on ne lit QUE ce qui
+  // tombe sous ces deux colonnes. Si l'en-tête n'est pas trouvé, on ne devine pas : on le
+  // dit et on laisse la saisie manuelle prendre le relais. Alias à enrichir au fur et à
+  // mesure que de vrais documents BCIG sont testés.
+  var CONFIG_COLONNES = {
+    commande: {
+      article: ["designation", "design", "article", "produit", "libelle"],
+      quantite: ["qtecommandee", "quantitecommandee", "qtecommande", "qte", "qty", "quantite"]
+    },
+    bl: {
+      article: ["designation", "design", "article", "produit", "libelle"],
+      quantite: ["qtelivree", "quantitelivree", "qtelivre", "qte", "qty", "quantite"]
+    }
+  };
+
+  function normaliserEntete(texte){
+    return (texte || "")
+      .toLowerCase()
+      .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^a-z]/g, "");
+  }
+
+  function trouverEnTetes(mots, cible){
+    var config = CONFIG_COLONNES[cible] || { article:[], quantite:[] };
+    var trouve = {};
+    ["article", "quantite"].forEach(function(role){
+      var candidats = config[role];
+      for(var i = 0; i < candidats.length && !trouve[role]; i++){
+        var alias = candidats[i];
+        var mot = mots.find(function(m){ return normaliserEntete(m.text) === alias; });
+        if(mot) trouve[role] = mot;
+      }
+    });
+    return trouve;
+  }
+
+  function analyserParColonnes(resultatOCR, cible){
+    var mots = resultatOCR && resultatOCR.data && resultatOCR.data.words;
+    if(!mots || mots.length === 0){
+      return { ok:false, lignes:[], message:"Aucun mot détecté sur la photo. Reprends-la, bien cadrée et lisible." };
+    }
+
+    var entetes = trouverEnTetes(mots, cible);
+    var manquantes = [];
+    if(!entetes.article) manquantes.push("Désignation");
+    if(!entetes.quantite) manquantes.push("Qté");
+    if(manquantes.length > 0){
+      return {
+        ok:false, lignes:[],
+        message:"Colonne(s) introuvable(s) sur la photo : " + manquantes.join(", ") +
+          ". Vérifie le cadrage, ou dis-moi l'intitulé exact utilisé sur ce document pour que je l'ajoute."
+      };
+    }
+
+    var yEntete = Math.min(entetes.article.bbox.y1, entetes.quantite.bbox.y1);
+    var xArticleDebut = entetes.article.bbox.x0;
+    var xArticleFin = entetes.quantite.bbox.x0;
+    var xQuantiteFin = entetes.quantite.bbox.x1 + 120; // marge : les chiffres débordent souvent à droite de l'en-tête
+
+    var motsCorps = mots.filter(function(m){ return m.bbox.y0 > yEntete + 5; });
+
+    // regroupe les mots du corps en lignes par proximité verticale (tolérance à affiner
+    // une fois testée sur un vrai document, selon l'interligne réel du tableau)
+    var TOLERANCE_Y = 12;
+    var lignesTableau = [];
+    motsCorps.forEach(function(m){
+      var yCentre = (m.bbox.y0 + m.bbox.y1) / 2;
+      var ligne = lignesTableau.find(function(l){ return Math.abs(l.y - yCentre) <= TOLERANCE_Y; });
+      if(!ligne){ ligne = { y: yCentre, mots: [] }; lignesTableau.push(ligne); }
+      ligne.mots.push(m);
+    });
+    lignesTableau.sort(function(a, b){ return a.y - b.y; });
+
     var resultats = [];
-    lignes.forEach(function(ligne){
-      var m = ligne.match(/(\d+(?:[.,]\d+)?)\s*(?:u|pces?|pcs?)?\s*$/i);
-      if(!m) return;
-      var quantite = parseFloat(m[1].replace(",", "."));
+    lignesTableau.forEach(function(ligne){
+      var motsArticle = ligne.mots.filter(function(m){
+        var xCentre = (m.bbox.x0 + m.bbox.x1) / 2;
+        return xCentre >= xArticleDebut - 20 && xCentre < xArticleFin;
+      }).sort(function(a, b){ return a.bbox.x0 - b.bbox.x0; });
+      var motsQuantite = ligne.mots.filter(function(m){
+        var xCentre = (m.bbox.x0 + m.bbox.x1) / 2;
+        return xCentre >= xArticleFin && xCentre <= xQuantiteFin;
+      });
+
+      var article = motsArticle.map(function(m){ return m.text; }).join(" ").trim();
+      var texteQuantite = motsQuantite.map(function(m){ return m.text; }).join(" ");
+      var m2 = texteQuantite.match(/\d+(?:[.,]\d+)?/);
+      if(!article || !m2) return;
+      var quantite = parseFloat(m2[0].replace(",", "."));
       if(!quantite || quantite <= 0) return;
-      var article = ligne.slice(0, m.index).trim();
-      article = article.replace(/^[A-Z0-9][A-Z0-9\-.]{2,}\s+/i, "").trim();
-      if(article.length < 2) return;
+
       resultats.push({ article: article, quantite: quantite });
     });
-    return resultats;
+
+    return { ok:true, lignes: resultats };
   }
 
   function ouvrirRelecture(cible){
@@ -1866,11 +1948,15 @@
       })
       .then(function(resultat){
         var texte = (resultat && resultat.data && resultat.data.text) || "";
-        relectureEnCours[cible] = analyserLignesDocument(texte);
         elCible(cible, "RelectureBrut").textContent = texte || "(rien détecté)";
-        elCible(cible, "RelectureStatut").textContent = relectureEnCours[cible].length > 0
-          ? relectureEnCours[cible].length + " ligne(s) détectée(s) : vérifie et corrige avant d'ajouter."
-          : "Rien reconnu automatiquement. Regarde le texte brut ci-dessous et ajoute les lignes à la main.";
+
+        var analyse = analyserParColonnes(resultat, cible);
+        relectureEnCours[cible] = analyse.lignes;
+        elCible(cible, "RelectureStatut").textContent = !analyse.ok
+          ? analyse.message
+          : (analyse.lignes.length > 0
+            ? analyse.lignes.length + " ligne(s) détectée(s) dans les colonnes Désignation / Qté : vérifie et corrige avant d'ajouter."
+            : "Colonnes Désignation / Qté trouvées, mais aucune ligne dessous. Ajoute les lignes à la main.");
         renderLignesRelecture(cible);
       })
       .catch(function(err){
