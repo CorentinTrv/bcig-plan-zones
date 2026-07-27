@@ -13,55 +13,34 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
 <meta name="apple-mobile-web-app-title" content="BCIG Zones" />
 <style>
+  /* Thème sombre choisi comme apparence UNIQUE de l'appli (demande du 27/07 : même rendu
+     partout, plus de dépendance au réglage clair/sombre de chaque appareil). Les blocs
+     [data-theme] restent en réserve (utiles si l'app est revue un jour dans le viewer
+     Claude), mais ne s'activent jamais tout seuls ici. */
   :root{
-    --ink:#241a1e;
-    --paper:#f6f2ec;
-    --surface:#ffffff;
-    --surface-2:#ece5dc;
-    --line:#ded3c6;
-    --muted:#7a6b64;
+    --ink:#f1e7e2;
+    --paper:#1b1416;
+    --surface:#251b1e;
+    --surface-2:#2f2225;
+    --line:#4a3a3d;
+    --muted:#b5a29b;
     --prep:#e8b023;
-    --prep-ink:#4a3400;
-    --prep-surface:#fff6de;
-    --test:#2f6fa8;
-    --test-ink:#ffffff;
-    --test-surface:#e7f0f8;
-    --attente:#3b5667;
-    --attente-ink:#ffffff;
-    --attente-surface:#e6ecef;
-    --accent:#9b1c51;
-    --accent-ink:#ffffff;
-    --danger:#b23a2e;
-    --danger-ink:#ffffff;
-    --warn:#b5541a;
-    --warn-ink:#ffffff;
+    --prep-ink:#2a1f00;
+    --prep-surface:#3a2c07;
+    --test:#5b9bd1;
+    --test-ink:#0b1720;
+    --test-surface:#16303f;
+    --attente:#7d97a6;
+    --attente-ink:#10191d;
+    --attente-surface:#233138;
+    --accent:#dd6690;
+    --accent-ink:#2a0c17;
+    --danger:#e0685a;
+    --danger-ink:#2a0d09;
+    --warn:#e0912f;
+    --warn-ink:#2a1400;
     --radius:10px;
-    --shadow: 0 1px 2px rgba(36,26,30,.08), 0 8px 24px -12px rgba(36,26,30,.28);
-  }
-  @media (prefers-color-scheme: dark){
-    :root{
-      --ink:#f1e7e2;
-      --paper:#1b1416;
-      --surface:#251b1e;
-      --surface-2:#2f2225;
-      --line:#4a3a3d;
-      --muted:#b5a29b;
-      --prep-ink:#2a1f00;
-      --prep-surface:#3a2c07;
-      --test-ink:#0b1720;
-      --test:#5b9bd1;
-      --test-surface:#16303f;
-      --attente:#7d97a6;
-      --attente-ink:#10191d;
-      --attente-surface:#233138;
-      --accent:#dd6690;
-      --accent-ink:#2a0c17;
-      --danger:#e0685a;
-      --danger-ink:#2a0d09;
-      --warn:#e0912f;
-      --warn-ink:#2a1400;
-      --shadow: 0 1px 2px rgba(0,0,0,.5), 0 8px 24px -12px rgba(0,0,0,.7);
-    }
+    --shadow: 0 1px 2px rgba(0,0,0,.5), 0 8px 24px -12px rgba(0,0,0,.7);
   }
   :root[data-theme="light"]{
     --ink:#241a1e; --paper:#f6f2ec; --surface:#ffffff; --surface-2:#ece5dc; --line:#ded3c6; --muted:#7a6b64;
@@ -574,7 +553,7 @@
     zone, les 6 chargés d'affaires et les 6 câbleurs affectés sont inventés au hasard pour le test, pas recopiés
     du plan papier. Les données restent uniquement dans ce navigateur pour l'instant (rien n'est partagé ni
     sauvegardé ailleurs).
-    <p class="version-tag mono">Version v5 · 27/07/2026 · Repère « CA » devant le chargé d'affaires</p>
+    <p class="version-tag mono">Version v6 · 27/07/2026 · Thème sombre unique, partout</p>
   </footer>
 </div>
 
