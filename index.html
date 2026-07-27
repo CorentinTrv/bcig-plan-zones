@@ -1,0 +1,1411 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<title>BCIG — Plan des zones · Suivi des affaires</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+
+<link rel="manifest" href="manifest.json" />
+<link rel="apple-touch-icon" href="apple-touch-icon.png" />
+<link rel="icon" href="icon-192.png" />
+<meta name="theme-color" content="#9b1c51" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="BCIG Zones" />
+<style>
+  :root{
+    --ink:#241a1e;
+    --paper:#f6f2ec;
+    --surface:#ffffff;
+    --surface-2:#ece5dc;
+    --line:#ded3c6;
+    --muted:#7a6b64;
+    --prep:#e8b023;
+    --prep-ink:#4a3400;
+    --prep-surface:#fff6de;
+    --test:#2f6fa8;
+    --test-ink:#ffffff;
+    --test-surface:#e7f0f8;
+    --attente:#3b5667;
+    --attente-ink:#ffffff;
+    --attente-surface:#e6ecef;
+    --accent:#9b1c51;
+    --accent-ink:#ffffff;
+    --danger:#b23a2e;
+    --danger-ink:#ffffff;
+    --warn:#b5541a;
+    --warn-ink:#ffffff;
+    --radius:10px;
+    --shadow: 0 1px 2px rgba(36,26,30,.08), 0 8px 24px -12px rgba(36,26,30,.28);
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --ink:#f1e7e2;
+      --paper:#1b1416;
+      --surface:#251b1e;
+      --surface-2:#2f2225;
+      --line:#4a3a3d;
+      --muted:#b5a29b;
+      --prep-ink:#2a1f00;
+      --prep-surface:#3a2c07;
+      --test-ink:#0b1720;
+      --test:#5b9bd1;
+      --test-surface:#16303f;
+      --attente:#7d97a6;
+      --attente-ink:#10191d;
+      --attente-surface:#233138;
+      --accent:#dd6690;
+      --accent-ink:#2a0c17;
+      --danger:#e0685a;
+      --danger-ink:#2a0d09;
+      --warn:#e0912f;
+      --warn-ink:#2a1400;
+      --shadow: 0 1px 2px rgba(0,0,0,.5), 0 8px 24px -12px rgba(0,0,0,.7);
+    }
+  }
+  :root[data-theme="light"]{
+    --ink:#241a1e; --paper:#f6f2ec; --surface:#ffffff; --surface-2:#ece5dc; --line:#ded3c6; --muted:#7a6b64;
+    --prep-ink:#4a3400; --prep-surface:#fff6de; --test:#2f6fa8; --test-ink:#ffffff; --test-surface:#e7f0f8;
+    --attente:#3b5667; --attente-ink:#ffffff; --attente-surface:#e6ecef;
+    --accent:#9b1c51; --accent-ink:#ffffff; --danger:#b23a2e; --danger-ink:#ffffff;
+    --warn:#b5541a; --warn-ink:#ffffff;
+    --shadow: 0 1px 2px rgba(36,26,30,.08), 0 8px 24px -12px rgba(36,26,30,.28);
+  }
+  :root[data-theme="dark"]{
+    --ink:#f1e7e2; --paper:#1b1416; --surface:#251b1e; --surface-2:#2f2225; --line:#4a3a3d; --muted:#b5a29b;
+    --prep-ink:#2a1f00; --prep-surface:#3a2c07; --test:#5b9bd1; --test-ink:#0b1720; --test-surface:#16303f;
+    --attente:#7d97a6; --attente-ink:#10191d; --attente-surface:#233138;
+    --accent:#dd6690; --accent-ink:#2a0c17; --danger:#e0685a; --danger-ink:#2a0d09;
+    --warn:#e0912f; --warn-ink:#2a1400;
+    --shadow: 0 1px 2px rgba(0,0,0,.5), 0 8px 24px -12px rgba(0,0,0,.7);
+  }
+  *{ box-sizing:border-box; }
+  html,body{ margin:0; padding:0; }
+  body{
+    background-color:var(--paper);
+    background-image:
+      linear-gradient(color-mix(in srgb, var(--ink) 6%, transparent) 1px, transparent 1px),
+      linear-gradient(90deg, color-mix(in srgb, var(--ink) 6%, transparent) 1px, transparent 1px);
+    background-size: 26px 26px;
+    color:var(--ink);
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    -webkit-font-smoothing:antialiased;
+    min-height:100vh;
+  }
+  .mono{
+    font-family: ui-monospace, "SF Mono", "Cascadia Code", Consolas, "Roboto Mono", monospace;
+    font-variant-numeric: tabular-nums;
+  }
+  a, button, input, select{ font-family:inherit; color:inherit; }
+  button{ cursor:pointer; }
+  :focus-visible{ outline:2px solid var(--accent); outline-offset:2px; }
+
+  .page{ max-width:1180px; margin:0 auto; padding:24px 20px 80px; }
+
+  header.top{
+    display:flex; flex-wrap:wrap; gap:16px 24px; align-items:flex-end; justify-content:space-between;
+    padding-bottom:18px; border-bottom:1px solid var(--line); margin-bottom:22px;
+  }
+  .brand{ display:flex; align-items:flex-start; gap:14px; }
+  .brand-mark{
+    flex:none; display:inline-flex; align-items:center; justify-content:center;
+    width:52px; height:52px; border-radius:10px; background:var(--accent); color:var(--accent-ink);
+    font-weight:800; font-size:.98rem; letter-spacing:.02em;
+  }
+  .brand-sub{
+    margin:0 0 4px; font-size:.72rem; text-transform:uppercase; letter-spacing:.06em;
+    color:var(--accent); font-weight:700;
+  }
+  header.top h1{
+    font-size:1.5rem; margin:0 0 6px; letter-spacing:-.01em; text-wrap:balance;
+  }
+  header.top p{ margin:0; color:var(--muted); font-size:.9rem; max-width:52ch; }
+  .legend{ display:flex; gap:14px; font-size:.78rem; color:var(--muted); align-items:center; flex-wrap:wrap; }
+  .legend .swatch{ display:inline-flex; align-items:center; gap:6px; }
+  .legend i{ width:11px; height:11px; border-radius:3px; display:inline-block; }
+  .legend i.prep{ background:var(--prep); }
+  .legend i.test{ background:var(--test); }
+  .legend i.attente{ background:var(--attente); }
+
+  .toolbar{
+    display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-bottom:14px;
+  }
+  .toolbar input[type="search"]{
+    flex:1; min-width:220px; padding:9px 12px; border-radius:8px; border:1px solid var(--line);
+    background:var(--surface); color:var(--ink); font-size:.88rem;
+  }
+  .lookup-result{
+    display:flex; align-items:center; gap:10px; padding:12px 16px; border-radius:10px;
+    margin-bottom:26px; font-size:.92rem; font-weight:600; box-shadow:var(--shadow);
+    border:1px solid transparent;
+  }
+  .lookup-result .lookup-icon{ font-size:1.1rem; }
+  .lookup-result .lookup-sub{
+    display:block; font-size:.76rem; font-weight:400; color:inherit; opacity:.85; margin-top:2px;
+  }
+  /* couleur de texte volontairement --ink (pas les tokens -ink de type, calibrés pour
+     un aplat SOLID, pas pour ces fonds -surface qui s'assombrissent en thème sombre) */
+  .lookup-result.found-prep{ background:var(--prep-surface); color:var(--ink); border-color:var(--prep); }
+  .lookup-result.found-test{ background:var(--test-surface); color:var(--ink); border-color:var(--test); }
+  .lookup-result.found-attente{ background:var(--attente-surface); color:var(--ink); border-color:var(--attente); }
+  .lookup-result.multiple{ background:var(--surface-2); color:var(--ink); border-color:var(--line); }
+  .lookup-result.unknown{ background:color-mix(in srgb, var(--warn) 14%, var(--surface)); color:var(--warn); border-color:var(--warn); }
+  .stat-row{ display:flex; gap:16px; align-items:center; font-size:.78rem; color:var(--muted); }
+  .stat-row strong{ color:var(--ink); font-variant-numeric:tabular-nums; }
+  .occupancy{ display:flex; align-items:center; gap:8px; }
+  .occupancy-bar{
+    display:flex; width:110px; height:8px; border-radius:4px; overflow:hidden; background:var(--surface-2);
+    flex:none;
+  }
+  .occ-seg{ height:100%; }
+  .occ-seg:not(:last-child){ border-right:2px solid var(--surface-2); }
+  .occ-seg.occ-attente{ background:var(--attente); }
+  .occ-seg.occ-prep{ background:var(--prep); }
+  .occ-seg.occ-test{ background:var(--test); }
+  .btn-ghost{
+    padding:8px 12px; border-radius:8px; border:1px solid var(--line); background:var(--surface);
+    color:var(--muted); font-size:.8rem;
+  }
+  .btn-ghost:hover{ color:var(--danger); border-color:var(--danger); }
+
+  section.group{ margin-bottom:30px; }
+  section.group h2{
+    font-size:.72rem; text-transform:uppercase; letter-spacing:.08em; color:var(--muted);
+    margin:0 0 10px; font-weight:600;
+  }
+  .tiles{
+    display:grid; grid-template-columns: repeat(auto-fill, minmax(128px, 1fr)); gap:8px;
+  }
+  .tile{
+    position:relative;
+    border-radius:var(--radius); border:1px solid transparent; padding:9px 10px 8px;
+    text-align:left; min-height:74px; display:flex; flex-direction:column; gap:5px;
+    box-shadow:var(--shadow); transition: transform .1s ease;
+  }
+  .warn-badge{
+    position:absolute; top:3px; right:3px; min-width:15px; height:15px; padding:0 3px;
+    border-radius:8px; background:var(--warn); color:var(--warn-ink); font-size:.62rem; font-weight:800;
+    line-height:15px; text-align:center; cursor:help;
+  }
+  .age-badge{
+    font-size:.64rem; padding:1px 7px; border-radius:8px; font-weight:600; white-space:nowrap;
+  }
+  .age-badge.age-normal{ background:var(--surface-2); color:var(--muted); }
+  .age-badge.age-warn{ background:color-mix(in srgb, var(--warn) 20%, var(--surface)); color:var(--warn); }
+  .age-badge.age-danger{ background:color-mix(in srgb, var(--danger) 20%, var(--surface)); color:var(--danger); }
+
+  /* palette volontairement distincte des couleurs sémantiques (jaune prép., bleu test,
+     ardoise attente, bordeaux accent, rouge danger, orange alerte) */
+  .avatar{
+    display:inline-flex; align-items:center; justify-content:center; flex:none;
+    width:20px; height:20px; border-radius:50%; font-size:.6rem; font-weight:700; color:#fff;
+  }
+  .avatar-vide{ background:var(--surface-2); color:var(--muted); }
+  .avatar-c0{ background:#5c7a5e; }
+  .avatar-c1{ background:#6b5b95; }
+  .avatar-c2{ background:#8a5a70; }
+  .avatar-c3{ background:#6a6a3a; }
+  .avatar-c4{ background:#3f7a72; }
+  .avatar-c5{ background:#8a6a44; }
+  .tile:hover{ transform:translateY(-1px); }
+  .tile.prep{ background:var(--prep-surface); border-color:color-mix(in srgb, var(--prep) 45%, transparent); }
+  .tile.test{ background:var(--test-surface); border-color:color-mix(in srgb, var(--test) 45%, transparent); }
+  .tile.attente{ background:var(--attente-surface); border-color:color-mix(in srgb, var(--attente) 45%, transparent); }
+  .tile.dim{ opacity:.32; }
+  .tile .code{ font-weight:700; font-size:.86rem; }
+  .tile.prep .code{ color:var(--prep-ink); }
+  .tile.test .code{ color:var(--test-ink); background:var(--test); display:inline-block; padding:1px 6px; border-radius:5px; width:fit-content; }
+  .tile.attente .code{ color:var(--attente-ink); background:var(--attente); display:inline-block; padding:1px 6px; border-radius:5px; width:fit-content; }
+  .tile .cableur{ font-size:.68rem; color:var(--muted); font-style:italic; }
+  .tile .chips{ display:flex; flex-wrap:wrap; gap:3px; margin-top:auto; }
+  .chip{
+    font-size:.62rem; padding:1px 5px; border-radius:4px; background:rgba(0,0,0,.08);
+  }
+  :root[data-theme="dark"] .chip{ background:rgba(255,255,255,.12); }
+  @media (prefers-color-scheme:dark){ :root:not([data-theme="light"]) .chip{ background:rgba(255,255,255,.12); } }
+  .tile .empty{ font-size:.68rem; color:var(--muted); opacity:.6; }
+
+  /* disposition "plan usine" : reprend la géométrie relevée sur la photo.
+     Grille générale à 2 colonnes : gauche = E (au-dessus) puis A/B (dessous) puis T/I (dessous) ;
+     droite = C, décalée pour démarrer au même niveau que A/B, comme sur le papier. */
+  .factory-board{
+    display:grid;
+    grid-template-columns: minmax(260px, 420px) auto;
+    column-gap: 40px; row-gap: 22px;
+    align-items:start;
+    flex:1; min-width:0;
+  }
+  .factory-board h2{
+    font-size:.72rem; text-transform:uppercase; letter-spacing:.08em; color:var(--muted);
+    margin:0 0 10px; font-weight:600;
+  }
+  .board-attente-col{ grid-column:1 / -1; grid-row:1; }
+  .board-test-col{ grid-column:1; grid-row:2; }
+  .board-ab-col{ grid-column:1; grid-row:3; }
+  .board-bottom-wrap{ grid-column:1; grid-row:4; }
+  .board-c-col{ grid-column:2; grid-row:3; }
+
+  #boardTest, #boardAB, #boardC{ display:flex; flex-direction:column; gap:8px; }
+  #boardAttente{ display:flex; flex-wrap:wrap; gap:10px; max-width:420px; }
+  #boardAttente .tile{ flex:1; min-width:150px; }
+
+  .pair-box, .quad-box, .row-box{
+    border:1px solid var(--line); border-radius:8px; box-shadow:var(--shadow); overflow:hidden;
+  }
+  .pair-box .tile, .quad-box .tile, .row-box .tile{ box-shadow:none; border-radius:0; border:none; }
+
+  /* E et C : une colonne, cases empilées */
+  .pair-box{ display:flex; flex-direction:column; }
+  .pair-box .tile{ border-bottom:1px solid var(--line); }
+  .pair-box .tile:last-child{ border-bottom:none; }
+
+  /* A/B : boîte partagée, grille 2x2 (A gauche, B droite) */
+  .quad-box{ display:grid; grid-template-columns:1fr 1fr; }
+  .quad-box .tile:nth-child(odd){ border-right:1px solid var(--line); }
+  .quad-box .tile:nth-child(-n+2){ border-bottom:1px solid var(--line); }
+
+  /* T / I : petite boîte à 2 cases côte à côte */
+  .row-box{ display:flex; flex-direction:row; }
+  .row-box .tile{ flex:1; min-width:0; }
+  .row-box .tile:first-child{ border-right:1px solid var(--line); }
+
+  .board-bottom{
+    display:grid; grid-template-columns:repeat(2, minmax(120px,160px)); gap:8px; justify-content:start;
+  }
+
+  @media (max-width:760px){
+    .factory-board{ grid-template-columns:1fr; }
+    .board-attente-col{ grid-row:1; }
+    .board-test-col{ grid-row:2; }
+    .board-ab-col{ grid-row:3; }
+    .board-bottom-wrap{ grid-row:4; }
+    .board-c-col{ grid-column:1; grid-row:5; }
+  }
+
+  /* drawer */
+  .scrim{
+    position:fixed; inset:0; background:rgba(10,14,12,.35); opacity:0; pointer-events:none;
+    transition:opacity .18s ease; z-index:20;
+  }
+  #addScrim{ z-index:30; }
+  #confirmScrim{ z-index:40; }
+  #confirmModal{ z-index:41; }
+  .scrim.open{ opacity:1; pointer-events:auto; }
+  .drawer{
+    position:fixed; top:0; right:0; height:100%; width:min(420px, 100%);
+    background:var(--surface); box-shadow:-12px 0 32px -16px rgba(0,0,0,.4);
+    transform:translateX(100%); transition:transform .2s ease; z-index:21;
+    display:flex; flex-direction:column;
+  }
+  .drawer.open{ transform:translateX(0); }
+  .drawer-head{
+    padding:18px 20px 14px; border-bottom:1px solid var(--line); display:flex; align-items:flex-start; justify-content:space-between; gap:10px;
+  }
+  .drawer-head .code-badge{ font-size:1.1rem; font-weight:700; }
+  .type-badge{
+    font-size:.62rem; text-transform:uppercase; letter-spacing:.06em; padding:2px 7px; border-radius:5px; font-weight:600;
+  }
+  .type-badge.prep{ background:var(--prep-surface); color:var(--prep-ink); border:1px solid var(--prep); }
+  .type-badge.test{ background:var(--test); color:var(--test-ink); }
+  .type-badge.attente{ background:var(--attente); color:var(--attente-ink); }
+  .drawer-close{
+    background:none; border:none; font-size:1.2rem; line-height:1; color:var(--muted); padding:4px;
+  }
+  .drawer-close:hover{ color:var(--ink); }
+  .drawer-body{ padding:16px 20px; overflow-y:auto; flex:1; display:flex; flex-direction:column; gap:20px; }
+
+  .field-label{ font-size:.68rem; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); display:block; margin-bottom:5px; }
+  .cableur-input{
+    width:100%; padding:8px 10px; border-radius:7px; border:1px solid var(--line); background:var(--surface-2);
+    color:var(--ink); font-size:.9rem;
+  }
+
+  .affaires-list{ display:flex; flex-direction:column; gap:8px; }
+  .affaire-row{
+    border:1px solid var(--line); border-radius:8px; padding:9px 10px; background:var(--surface-2);
+    display:flex; flex-direction:column; gap:6px;
+  }
+  .affaire-row .top-line{ display:flex; align-items:center; justify-content:space-between; gap:8px; }
+  .affaire-row .numero{ font-weight:700; font-size:.9rem; }
+  .affaire-row .charge-input{
+    flex:1; padding:6px 8px; border-radius:6px; border:1px solid var(--line); background:var(--surface);
+    font-size:.82rem; color:var(--ink);
+  }
+  .affaire-row .row-actions{ display:flex; gap:6px; align-items:center; }
+  .affaire-row select{
+    padding:5px 6px; border-radius:6px; border:1px solid var(--line); background:var(--surface); font-size:.76rem; max-width:120px;
+  }
+  .icon-btn{
+    border:1px solid var(--line); background:var(--surface); border-radius:6px; padding:5px 8px; font-size:.72rem; color:var(--muted);
+  }
+  .icon-btn.danger:hover{ background:var(--danger); color:var(--danger-ink); border-color:var(--danger); }
+  .no-affaires{ font-size:.82rem; color:var(--muted); font-style:italic; padding:6px 2px; }
+
+  .add-form{
+    border-top:1px dashed var(--line); padding-top:14px; display:flex; flex-direction:column; gap:8px;
+  }
+  .add-form .row{ display:flex; gap:8px; }
+  .add-form input{
+    flex:1; padding:8px 10px; border-radius:7px; border:1px solid var(--line); background:var(--surface-2);
+    color:var(--ink); font-size:.85rem;
+  }
+  .btn-primary{
+    background:var(--accent); color:var(--accent-ink); border:none; border-radius:7px; padding:9px 14px;
+    font-size:.85rem; font-weight:600; align-self:flex-start;
+  }
+  .btn-primary:hover{ filter:brightness(1.08); }
+
+  footer.note{
+    margin-top:36px; padding-top:16px; border-top:1px solid var(--line); font-size:.76rem; color:var(--muted); max-width:70ch;
+  }
+
+  /* liste des affaires, à gauche du plan */
+  .content-layout{ display:flex; gap:28px; align-items:flex-start; }
+  .affaires-sidebar{
+    flex:0 0 240px; width:240px; position:sticky; top:20px;
+    max-height:calc(100vh - 40px); display:flex; flex-direction:column;
+  }
+  .affaires-sidebar h2{
+    font-size:.72rem; text-transform:uppercase; letter-spacing:.08em; color:var(--muted);
+    margin:0 0 4px; font-weight:600; display:flex; align-items:center; gap:6px;
+  }
+  .sidebar-count-badge{
+    background:var(--surface-2); color:var(--ink); border-radius:20px; padding:0 7px; font-size:.68rem;
+    font-weight:700; font-variant-numeric:tabular-nums;
+  }
+  .sidebar-tabs{ display:flex; gap:4px; margin-bottom:8px; }
+  .sidebar-tab{
+    flex:1; padding:5px 6px; border-radius:6px; border:1px solid var(--line); background:var(--surface);
+    color:var(--muted); font-size:.66rem; font-weight:600; cursor:pointer;
+  }
+  .sidebar-tab.active{ background:var(--accent); color:var(--accent-ink); border-color:var(--accent); }
+  .sidebar-hint{ margin:0 0 10px; font-size:.72rem; color:var(--muted); }
+  .cableur-summary{
+    border:1px solid var(--line); border-radius:8px; padding:8px 9px; background:var(--surface);
+    box-shadow:var(--shadow); display:flex; flex-direction:column; gap:6px;
+  }
+  .cableur-summary-head{ display:flex; align-items:center; gap:8px; }
+  .cableur-summary-head strong{ font-size:.8rem; font-weight:700; flex:1; }
+  .cableur-summary-zones{ display:flex; flex-wrap:wrap; gap:4px; }
+  .sidebar-list{
+    display:flex; flex-direction:column; gap:6px; overflow-y:auto; padding-right:2px;
+    flex:1; min-height:60px;
+  }
+  .sidebar-empty{ font-size:.8rem; color:var(--muted); font-style:italic; }
+  .sidebar-historique{ flex:none; margin-top:10px; border-top:1px solid var(--line); padding-top:10px; }
+  .sidebar-historique summary{
+    cursor:pointer; font-size:.72rem; text-transform:uppercase; letter-spacing:.06em; color:var(--muted);
+    font-weight:600; display:flex; align-items:center; gap:6px; list-style:none;
+  }
+  .sidebar-historique summary::-webkit-details-marker{ display:none; }
+  .sidebar-historique[open] summary{ margin-bottom:8px; }
+  .sidebar-historique .sidebar-list{ flex:none; max-height:220px; }
+  .sidebar-row.archivee{ opacity:.75; }
+  .sidebar-row .cloture-info{ font-size:.66rem; color:var(--muted); }
+  .sidebar-row{
+    position:relative;
+    display:flex; flex-direction:column; gap:2px; text-align:left; padding:7px 24px 7px 9px;
+    border:1px solid var(--line); border-radius:7px; background:var(--surface); box-shadow:var(--shadow);
+  }
+  .sidebar-row .warn-badge{ top:7px; right:7px; }
+  .sidebar-row:hover{ border-color:var(--accent); }
+  .sidebar-person-line{ display:flex; align-items:center; gap:6px; }
+  .sidebar-num{ font-size:.8rem; font-weight:700; }
+  .sidebar-cableur{ font-size:.68rem; color:var(--muted); }
+  .sidebar-meta-line{ display:flex; align-items:center; gap:6px; margin-top:2px; }
+  .sidebar-zone{
+    font-size:.6rem; font-weight:700; text-transform:uppercase;
+    letter-spacing:.03em; padding:1px 6px; border-radius:4px;
+  }
+  .sidebar-zone.prep{ background:var(--prep-surface); color:var(--prep-ink); }
+  .sidebar-zone.test{ background:var(--test); color:var(--test-ink); }
+  .sidebar-zone.attente{ background:var(--attente); color:var(--attente-ink); }
+
+  @media (max-width:900px){
+    .content-layout{ flex-direction:column; }
+    .affaires-sidebar{ position:static; width:100%; flex:none; max-height:none; }
+    .sidebar-list{ max-height:320px; }
+  }
+
+  /* fenêtre "nouvelle affaire" (bouton global, sans passer par une zone) */
+  .modal{
+    position:fixed; top:50%; left:50%; transform:translate(-50%,-46%); width:min(380px, 92vw);
+    background:var(--surface); border-radius:12px; box-shadow:var(--shadow); z-index:31;
+    opacity:0; pointer-events:none; transition:opacity .15s ease, transform .15s ease;
+    max-height:88vh; overflow-y:auto;
+  }
+  .modal.open{ opacity:1; pointer-events:auto; transform:translate(-50%,-50%); }
+  .modal-head{
+    display:flex; align-items:center; justify-content:space-between; padding:16px 18px 10px;
+    border-bottom:1px solid var(--line);
+  }
+  .modal-head h3{ margin:0; font-size:1rem; }
+  .modal-body{ padding:16px 18px 20px; display:flex; flex-direction:column; gap:14px; }
+  .modal-field{ display:flex; flex-direction:column; gap:5px; }
+  .modal-hint{ margin:0; font-size:.74rem; color:var(--muted); font-style:italic; }
+  .modal-error{ font-size:.78rem; color:var(--danger); }
+
+  .confirm-modal .modal-body{ padding:20px; gap:16px; }
+  .confirm-modal p{ margin:0; font-size:.9rem; line-height:1.45; }
+  .confirm-actions{ display:flex; justify-content:flex-end; gap:8px; }
+</style>
+
+</head>
+<body>
+<div class="page">
+  <header class="top">
+    <div class="brand">
+      <span class="brand-mark">BCIG</span>
+      <div>
+        <p class="brand-sub">Bretagne Câblage Industriel Gravure · Le Rheu</p>
+        <h1>Plan des zones — suivi des affaires</h1>
+        <p>Clique une zone pour voir ses affaires, son câbleur, et les déplacer ou les clôturer.</p>
+      </div>
+    </div>
+    <div class="legend">
+      <span class="swatch"><i class="attente"></i>Attente (réceptionné, pas encore lancé)</span>
+      <span class="swatch"><i class="prep"></i>Préparation (câbleurs)</span>
+      <span class="swatch"><i class="test"></i>Tests</span>
+    </div>
+  </header>
+
+  <div class="toolbar">
+    <button class="btn-primary" id="newAffaireBtn" type="button">+ Nouvelle affaire</button>
+    <input type="search" id="search" placeholder="Un colis arrive : tape le n° d'affaire pour savoir où l'emmener…" />
+    <div class="stat-row">
+      <span><strong id="statAffaires">0</strong> affaires en cours</span>
+      <div class="occupancy" title="Répartition des emplacements occupés par type de zone">
+        <div class="occupancy-bar" id="occupancyBar"></div>
+        <span><strong id="statZones">0 / 0</strong> emplacements</span>
+      </div>
+    </div>
+    <button class="btn-ghost" id="resetBtn" type="button">Réinitialiser les données</button>
+  </div>
+
+  <div id="lookupResult" class="lookup-result" hidden></div>
+
+  <div class="content-layout">
+    <aside class="affaires-sidebar">
+      <h2><span id="sidebarTitle">Affaires en cours</span> <span class="sidebar-count-badge" id="sidebarCount">0</span></h2>
+      <div class="sidebar-tabs">
+        <button type="button" class="sidebar-tab active" id="tabAffaires">Par affaire</button>
+        <button type="button" class="sidebar-tab" id="tabCableurs">Charge par câbleur</button>
+      </div>
+      <p class="sidebar-hint" id="sidebarHint">Attente d'abord, puis préparation, zones de test à la fin.</p>
+      <div class="sidebar-list" id="sidebarList"></div>
+      <details class="sidebar-historique">
+        <summary>Historique (clôturées) <span class="sidebar-count-badge" id="historiqueCount">0</span></summary>
+        <div class="sidebar-list" id="historiqueList"></div>
+      </details>
+    </aside>
+
+    <main class="factory-board">
+      <div class="board-attente-col">
+        <h2>Attente — réceptionné, affaire pas encore lancée</h2>
+        <div id="boardAttente"></div>
+      </div>
+      <div class="board-test-col">
+        <h2>Zones de test</h2>
+        <div id="boardTest"></div>
+      </div>
+      <div class="board-c-col">
+        <h2>Allée C</h2>
+        <div id="boardC"></div>
+      </div>
+      <div class="board-ab-col">
+        <h2>Allées A · B</h2>
+        <div id="boardAB"></div>
+      </div>
+      <div class="board-bottom-wrap">
+        <h2>Blocs T · I</h2>
+        <div class="board-bottom" id="boardBottom"></div>
+      </div>
+    </main>
+  </div>
+
+  <footer class="note">
+    Croquis de test — la disposition reprend la géométrie relevée sur ta photo : les 3 boîtes de zones de test (E)
+    au-dessus, les zones A et B qui PARTAGENT une même boîte par paire de rangées (A à gauche, B à droite),
+    la colonne C séparée à droite (décalée pour démarrer au niveau de A/B, comme sur le papier, sans boîte de test
+    au-dessus), et en bas à gauche les blocs T et I en 2 colonnes de petites boîtes à 2 cases. Les 3 boîtes bleues
+    du haut n'avaient que deux repères visibles (E1–E4) ; j'ai ajouté E5/E6 par défaut pour la troisième, à
+    renommer si besoin. Le Palettier et le Module (zones d'attente, en haut) et toute leur logique n'existaient
+    pas sur le plan papier, ils traduisent le vrai geste de la réception : stocker le matériel avant que l'affaire
+    ne soit lancée. Les numéros d'affaires (format A2600 + 3 chiffres), leur nombre par zone, les 6 chargés
+    d'affaires et les 6 câbleurs affectés sont inventés au hasard pour le test, pas recopiés du plan papier. Les
+    données restent uniquement dans ce navigateur pour l'instant (rien n'est partagé ni sauvegardé ailleurs).
+  </footer>
+</div>
+
+<div class="scrim" id="scrim"></div>
+<aside class="drawer" id="drawer" aria-hidden="true"></aside>
+
+<div class="scrim" id="addScrim"></div>
+<div class="modal" id="addModal" aria-hidden="true" role="dialog" aria-label="Nouvelle affaire">
+  <div class="modal-head">
+    <h3>Nouvelle affaire</h3>
+    <button type="button" class="drawer-close" id="addModalClose" aria-label="Fermer">×</button>
+  </div>
+  <div class="modal-body">
+    <div class="modal-field">
+      <label class="field-label" for="addNumero">N° d'affaire (obligatoire)</label>
+      <input type="text" id="addNumero" class="cableur-input" placeholder="ex. A2600248" />
+    </div>
+    <div class="modal-field">
+      <label class="field-label" for="addZone">Zone (obligatoire)</label>
+      <select id="addZone" class="cableur-input"></select>
+    </div>
+    <div class="modal-field">
+      <label class="field-label" for="addCharge">Chargé d'affaires (facultatif, à compléter plus tard si besoin)</label>
+      <input type="text" id="addCharge" class="cableur-input" placeholder="Prénom Nom" />
+    </div>
+    <p class="modal-hint">Le câbleur ne se modifie que depuis sa zone (il est partagé par toutes les affaires qu'elle contient).</p>
+    <div class="modal-error" id="addError" hidden>Le numéro d'affaire et la zone sont obligatoires.</div>
+    <button type="button" class="btn-primary" id="addSubmit">Ajouter l'affaire</button>
+  </div>
+</div>
+
+<div class="scrim" id="confirmScrim"></div>
+<div class="modal confirm-modal" id="confirmModal" aria-hidden="true" role="alertdialog" aria-label="Confirmation">
+  <div class="modal-body">
+    <p id="confirmMessage"></p>
+    <div class="confirm-actions">
+      <button type="button" class="btn-ghost" id="confirmCancel">Annuler</button>
+      <button type="button" class="btn-primary" id="confirmOk">Confirmer</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  var GROUPS = [
+    { name:"Attente (réception)", type:"attente", codes:["PALETTIER","MODULE"] },
+    { name:"Zones de test", type:"test", codes:["E1","E2","E3","E4","E5","E6"] },
+    { name:"Préparation — colonne A", type:"prep", codes:["A10","A9","A8","A7","A6","A5","A4","A3","A2","A1"] },
+    { name:"Préparation — colonne B", type:"prep", codes:["B10","B9","B8","B7","B6","B5","B4","B3","B2","B1"] },
+    { name:"Préparation — colonne C", type:"prep", codes:["C10","C9","C8","C7","C6","C5","C4","C3","C2","C1"] },
+    { name:"Préparation — bloc T", type:"prep", codes:["T1","T2","T3","T4"] },
+    { name:"Préparation — bloc I", type:"prep", codes:["I1","I2","I3","I4","I5","I6","I7","I8"] }
+  ];
+
+  var ALL_ZONES = [];
+  var ZONE_TYPE = {};
+  GROUPS.forEach(function(g){
+    g.codes.forEach(function(c){ ALL_ZONES.push(c); ZONE_TYPE[c] = g.type; });
+  });
+
+  var STORAGE_KEY = "plan-zones-croquis-v4";
+
+  var NAMES = ["Julien Marchand", "Camille Rousseau", "Nicolas Perrin", "Sophie Lambert", "Thomas Girard", "Élise Fontaine"];
+  var CABLEURS = ["Karim Haddad", "Yohann Le Gall", "Damien Roussel", "Fabrice Morin", "Anthony Le Bris", "Mickaël Renard"];
+
+  // nombre d'affaires inventé par zone (beaucoup à 0, comme sur le plan papier)
+  var ZONE_SEED_COUNTS = [
+    ["PALETTIER",2], ["MODULE",1],
+    ["E1",3], ["E2",2], ["E3",4], ["E4",1], ["E5",0], ["E6",2],
+    ["A10",0], ["A9",2], ["A8",1], ["A7",2], ["A6",3], ["A5",1], ["A4",1], ["A3",3], ["A2",2], ["A1",1],
+    ["B10",0], ["B9",1], ["B8",0], ["B7",1], ["B6",0], ["B5",1], ["B4",1], ["B3",2], ["B2",2], ["B1",1],
+    ["C10",0], ["C9",0], ["C8",1], ["C7",1], ["C6",1], ["C5",0], ["C4",0], ["C3",1], ["C2",1], ["C1",1],
+    ["T1",0], ["T2",0], ["T3",2], ["T4",1],
+    ["I1",1], ["I2",1], ["I3",0], ["I4",0], ["I5",1], ["I6",1], ["I7",1], ["I8",1]
+  ];
+
+  function mulberry32(seed){
+    return function(){
+      seed |= 0; seed = seed + 0x6D2B79F5 | 0;
+      var t = Math.imul(seed ^ seed >>> 15, 1 | seed);
+      t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+      return ((t ^ t >>> 14) >>> 0) / 4294967296;
+    };
+  }
+
+  var UN_JOUR_MS = 24 * 60 * 60 * 1000;
+
+  function defaultState(){
+    var rand = mulberry32(20260727);
+    var used = {};
+    var affaires = [];
+    var maintenant = Date.now();
+    ZONE_SEED_COUNTS.forEach(function(pair){
+      var zone = pair[0], count = pair[1];
+      var enAttente = ZONE_TYPE[zone] === "attente";
+      for(var i=0; i<count; i++){
+        var numero;
+        do {
+          var suffix = Math.floor(rand() * 1000);
+          numero = "A2600" + String(suffix).padStart(3, "0");
+        } while(used[numero]);
+        used[numero] = true;
+        // en attente : le chargé d'affaires n'est pas encore connu à la réception
+        var charge = enAttente ? "" : NAMES[Math.floor(rand() * NAMES.length)];
+        var ancienneteJours = Math.floor(rand() * 12);
+        var horodatage = maintenant - ancienneteJours * UN_JOUR_MS;
+        affaires.push({
+          id: uid(), numero: numero, charge: charge, zone: zone,
+          creeLe: horodatage, zoneDepuisLe: horodatage,
+          archivee: false
+        });
+      }
+    });
+    var cableurs = {};
+    ALL_ZONES.forEach(function(code){
+      if(ZONE_TYPE[code] === "attente") return; // pas de câbleur assigné à une zone d'attente
+      cableurs[code] = CABLEURS[Math.floor(rand() * CABLEURS.length)];
+    });
+    return { cableurs: cableurs, affaires: affaires };
+  }
+
+  // le vrai geste de la réception : taper un numéro d'affaire et savoir immédiatement où aller
+  function renderLookup(){
+    var banniere = document.getElementById("lookupResult");
+    var requete = filterText.trim();
+    if(!requete){ banniere.hidden = true; return; }
+
+    var actives = state.affaires.filter(function(a){ return !a.archivee; });
+    var q = requete.toLowerCase();
+    var exactes = actives.filter(function(a){ return (a.numero || "").toLowerCase() === q; });
+    var correspondances = exactes.length > 0
+      ? exactes
+      : actives.filter(function(a){ return (a.numero || "").toLowerCase().indexOf(q) !== -1; });
+
+    banniere.hidden = false;
+    banniere.innerHTML = "";
+
+    if(correspondances.length === 0){
+      banniere.className = "lookup-result unknown";
+      banniere.appendChild(el("span", { class:"lookup-icon", text:"?" }));
+      banniere.appendChild(el("span", {}, [
+        document.createTextNode("Aucune affaire connue sous « " + requete + " »."),
+        el("span", { class:"lookup-sub", text:"Nouvelle réception : stocke le colis au Palettier ou en Module, puis ajoute l'affaire." })
+      ]));
+      return;
+    }
+
+    if(correspondances.length > 1){
+      banniere.className = "lookup-result multiple";
+      var liste = correspondances.slice(0, 6).map(function(a){ return a.numero + " (" + a.zone + ")"; }).join(", ");
+      banniere.appendChild(el("span", { class:"lookup-icon", text:"⋯" }));
+      banniere.appendChild(el("span", {}, [
+        document.createTextNode(correspondances.length + " affaires correspondent à « " + requete + " »."),
+        el("span", { class:"lookup-sub", text: liste })
+      ]));
+      return;
+    }
+
+    var a = correspondances[0];
+    var type = ZONE_TYPE[a.zone] || "prep";
+    banniere.className = "lookup-result found-" + type;
+    if(type === "attente"){
+      banniere.appendChild(el("span", { class:"lookup-icon", text:"⏸" }));
+      banniere.appendChild(el("span", {}, [
+        document.createTextNode(a.numero + " est en attente (" + a.zone + "), l'affaire n'a pas encore été lancée."),
+        el("span", { class:"lookup-sub", text:"Ajoute le colis à cet endroit, avec le reste." })
+      ]));
+    } else {
+      var cableur = state.cableurs[a.zone];
+      banniere.appendChild(el("span", { class:"lookup-icon", text:"→" }));
+      banniere.appendChild(el("span", {}, [
+        document.createTextNode(a.numero + " est en zone " + a.zone + "."),
+        el("span", { class:"lookup-sub", text: cableur ? "Câbleur : " + cableur : "Câbleur non renseigné pour cette zone" })
+      ]));
+    }
+  }
+
+  function loadState(){
+    try{
+      var raw = localStorage.getItem(STORAGE_KEY);
+      if(!raw) return defaultState();
+      var parsed = JSON.parse(raw);
+      if(!parsed || !parsed.affaires || !parsed.cableurs) return defaultState();
+      return parsed;
+    }catch(e){ return defaultState(); }
+  }
+
+  function saveState(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+
+  var state = loadState();
+  var openZone = null;
+  var filterText = "";
+  var sidebarView = "affaires";
+
+  function uid(){ return "a-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2,7); }
+
+  function affairesInZone(code){
+    return state.affaires.filter(function(a){ return a.zone === code && !a.archivee; });
+  }
+
+  function affairesCloturees(){
+    return state.affaires.filter(function(a){ return a.archivee; })
+      .sort(function(a, b){ return (b.archiveeLe || 0) - (a.archiveeLe || 0); });
+  }
+
+  function matchesFilter(code){
+    if(!filterText) return true;
+    var f = filterText.toLowerCase();
+    var cableur = (state.cableurs[code] || "").toLowerCase();
+    if(code.toLowerCase().indexOf(f) !== -1) return true;
+    if(cableur.indexOf(f) !== -1) return true;
+    return affairesInZone(code).some(function(a){
+      return (a.numero || "").toLowerCase().indexOf(f) !== -1 ||
+             (a.charge  || "").toLowerCase().indexOf(f) !== -1;
+    });
+  }
+
+  function el(tag, attrs, children){
+    var node = document.createElement(tag);
+    attrs = attrs || {};
+    Object.keys(attrs).forEach(function(k){
+      if(k === "class") node.className = attrs[k];
+      else if(k === "text") node.textContent = attrs[k];
+      else node.setAttribute(k, attrs[k]);
+    });
+    (children || []).forEach(function(c){ if(c) node.appendChild(c); });
+    return node;
+  }
+
+  function renderStats(){
+    document.getElementById("statAffaires").textContent = state.affaires.filter(function(a){ return !a.archivee; }).length;
+
+    var occupied = new Set(state.affaires.filter(function(a){ return !a.archivee; }).map(function(a){ return a.zone; }));
+    document.getElementById("statZones").textContent = occupied.size + " / " + ALL_ZONES.length;
+
+    var comptes = { attente:0, prep:0, test:0 };
+    occupied.forEach(function(zone){
+      var t = ZONE_TYPE[zone];
+      if(comptes[t] !== undefined) comptes[t]++;
+    });
+    var bar = document.getElementById("occupancyBar");
+    bar.innerHTML = "";
+    ["attente","prep","test"].forEach(function(t){
+      if(comptes[t] === 0) return;
+      var pct = (comptes[t] / ALL_ZONES.length) * 100;
+      bar.appendChild(el("span", { class:"occ-seg occ-" + t, style:"width:" + pct + "%" }));
+    });
+    bar.title = comptes.attente + " attente · " + comptes.prep + " préparation · " + comptes.test + " test";
+  }
+
+  // Reprend la géométrie exacte relevée sur la photo :
+  // - E : 3 boîtes empilées à une colonne (2 rangées chacune)
+  // - A/B : PARTAGENT une même boîte par paire de rangées, en grille 2x2
+  //   (A en colonne gauche, B en colonne droite, rangée haute puis basse)
+  // - C : colonne à part, décalée à droite, même principe que E (à une colonne)
+  // - T/I : en bas à gauche, 2 colonnes de petites boîtes à 2 cases côte à côte
+  var BOARD = {
+    attente: ["PALETTIER","MODULE"],
+    test: ["E1","E2","E3","E4","E5","E6"],
+    ab: [
+      ["A10","B10","A9","B9"],
+      ["A8","B8","A7","B7"],
+      ["A6","B6","A5","B5"],
+      ["A4","B4","A3","B3"],
+      ["A2","B2","A1","B1"]
+    ],
+    c: ["C10","C9","C8","C7","C6","C5","C4","C3","C2","C1"],
+    bottom: [
+      ["T1","T2"], ["T3","T4"],
+      ["I5","I6"], ["I7","I8"],
+      ["I1","I2"], ["I3","I4"]
+    ]
+  };
+
+  function chunk(arr, size){
+    var out = [];
+    for(var i=0; i<arr.length; i+=size){ out.push(arr.slice(i, i+size)); }
+    return out;
+  }
+
+  // boîte à une colonne, cases empilées (E, C)
+  function renderPairBox(codes){
+    var box = el("div", { class:"pair-box" });
+    codes.forEach(function(code){ box.appendChild(renderTile(code, ZONE_TYPE[code])); });
+    return box;
+  }
+
+  // boîte partagée A/B : grille 2x2 (haut-gauche, haut-droit, bas-gauche, bas-droit)
+  function renderQuadBox(codes4){
+    var box = el("div", { class:"quad-box" });
+    codes4.forEach(function(code){ box.appendChild(renderTile(code, ZONE_TYPE[code])); });
+    return box;
+  }
+
+  // petite boîte à 2 cases côte à côte (blocs T / I)
+  function renderRowBox(codes2){
+    var box = el("div", { class:"row-box" });
+    codes2.forEach(function(code){ box.appendChild(renderTile(code, ZONE_TYPE[code])); });
+    return box;
+  }
+
+  function renderBoard(){
+    var attenteWrap = document.getElementById("boardAttente");
+    attenteWrap.innerHTML = "";
+    BOARD.attente.forEach(function(code){ attenteWrap.appendChild(renderTile(code, "attente")); });
+
+    var testWrap = document.getElementById("boardTest");
+    testWrap.innerHTML = "";
+    chunk(BOARD.test, 2).forEach(function(pair){ testWrap.appendChild(renderPairBox(pair)); });
+
+    var abWrap = document.getElementById("boardAB");
+    abWrap.innerHTML = "";
+    BOARD.ab.forEach(function(quad){ abWrap.appendChild(renderQuadBox(quad)); });
+
+    var cWrap = document.getElementById("boardC");
+    cWrap.innerHTML = "";
+    chunk(BOARD.c, 2).forEach(function(pair){ cWrap.appendChild(renderPairBox(pair)); });
+
+    var bottomWrap = document.getElementById("boardBottom");
+    bottomWrap.innerHTML = "";
+    BOARD.bottom.forEach(function(pair){ bottomWrap.appendChild(renderRowBox(pair)); });
+  }
+
+  // ordre d'affichage de la liste : attente d'abord (le plus urgent, pas encore lancé),
+  // puis les zones de préparation, puis les zones de test à la fin
+  var SIDEBAR_ORDER = (function(){
+    var prep = [];
+    BOARD.ab.forEach(function(quad){ prep.push(quad[0], quad[1], quad[2], quad[3]); });
+    prep = prep.concat(BOARD.c);
+    BOARD.bottom.forEach(function(pair){ prep.push(pair[0], pair[1]); });
+    return BOARD.attente.concat(prep, BOARD.test);
+  })();
+
+  function initialesDe(nom){
+    if(!nom) return "";
+    var mots = nom.trim().split(/\s+/).filter(Boolean);
+    if(mots.length === 0) return "";
+    if(mots.length === 1) return mots[0].charAt(0).toUpperCase();
+    return (mots[0].charAt(0) + mots[mots.length - 1].charAt(0)).toUpperCase();
+  }
+
+  // puce avatar : couleur dérivée du nom (toujours la même pour une même personne),
+  // dans une palette volontairement distincte des couleurs sémantiques du plan
+  function elAvatar(nom){
+    if(!nom) return el("span", { class:"avatar avatar-vide", text:"?" });
+    var h = 0;
+    for(var i = 0; i < nom.length; i++){ h = (h * 31 + nom.charCodeAt(i)) >>> 0; }
+    return el("span", { class:"avatar avatar-c" + (h % 6), text: initialesDe(nom) || "?" });
+  }
+
+  // ancienneté DANS LA ZONE ACTUELLE (zoneDepuisLe), pas depuis la création (creeLe) :
+  // c'est ce qui révèle un blocage (une affaire qui traîne dans une zone), pas juste l'âge du dossier
+  function joursDansZone(a){
+    var depuis = a.zoneDepuisLe || a.creeLe || Date.now();
+    return Math.floor((Date.now() - depuis) / UN_JOUR_MS);
+  }
+  function texteAnciennete(a){
+    var jours = joursDansZone(a);
+    if(jours <= 0) return "aujourd'hui";
+    return "depuis " + jours + (jours > 1 ? " jours" : " jour");
+  }
+  function classeAnciennete(a){
+    var jours = joursDansZone(a);
+    if(jours >= 8) return "age-danger";
+    if(jours >= 4) return "age-warn";
+    return "age-normal";
+  }
+
+  // repère une saisie en double (faute de frappe qui recrée une affaire déjà suivie ailleurs)
+  function trouverAffaireActiveParNumero(numero){
+    var cherche = numero.trim().toLowerCase();
+    return state.affaires.find(function(a){
+      return !a.archivee && (a.numero || "").trim().toLowerCase() === cherche;
+    }) || null;
+  }
+
+  // point d'entrée unique pour créer une affaire (drawer ou fenêtre globale) :
+  // avertissement non bloquant si le numéro existe déjà ailleurs, jamais un blocage
+  function ajouterAffaire(numero, charge, zone, apresCreation){
+    function creer(){
+      var maintenant = Date.now();
+      state.affaires.push({
+        id: uid(), numero: numero, charge: charge, zone: zone,
+        creeLe: maintenant, zoneDepuisLe: maintenant, archivee: false
+      });
+      saveState(); renderBoard(); renderStats(); renderSidebar();
+      if(apresCreation) apresCreation();
+    }
+    var doublon = trouverAffaireActiveParNumero(numero);
+    if(doublon){
+      demanderConfirmation(
+        "Le numéro " + numero + " existe déjà dans la zone " + doublon.zone +
+          ". L'ajouter quand même dans " + zone + " ?",
+        creer
+      );
+    } else {
+      creer();
+    }
+  }
+
+  // le câbleur est un attribut de ZONE, le chargé d'affaires un attribut d'AFFAIRE :
+  // ce helper regroupe les deux manques pour un affichage unique
+  function infosManquantes(zoneCode, affs){
+    var lignes = [];
+    // en attente : ni câbleur ni chargé d'affaires ne sont censés être connus, ce n'est pas une anomalie
+    if(ZONE_TYPE[zoneCode] === "attente") return lignes;
+    if(affs.length > 0 && !state.cableurs[zoneCode]){
+      lignes.push("Câbleur de la zone non renseigné");
+    }
+    affs.forEach(function(a){
+      if(!a.charge){ lignes.push(a.numero + " : chargé d'affaires manquant"); }
+    });
+    return lignes;
+  }
+
+  function renderSidebar(){
+    var hint = document.getElementById("sidebarHint");
+    var titre = document.getElementById("sidebarTitle");
+    if(sidebarView === "cableurs"){
+      titre.textContent = "Câbleurs";
+      hint.textContent = "Zones assignées et charge active par câbleur.";
+      renderSidebarParCableur();
+    } else {
+      titre.textContent = "Affaires en cours";
+      hint.textContent = "Attente d'abord, puis préparation, zones de test à la fin.";
+      renderSidebarParAffaire();
+    }
+    renderHistorique();
+  }
+
+  function renderSidebarParAffaire(){
+    var list = document.getElementById("sidebarList");
+    list.innerHTML = "";
+
+    var orderIndex = {};
+    SIDEBAR_ORDER.forEach(function(code, i){ orderIndex[code] = i; });
+    var sorted = state.affaires.filter(function(a){ return !a.archivee; }).sort(function(a, b){
+      var ia = orderIndex[a.zone] !== undefined ? orderIndex[a.zone] : 999;
+      var ib = orderIndex[b.zone] !== undefined ? orderIndex[b.zone] : 999;
+      if(ia !== ib) return ia - ib;
+      return (a.numero || "").localeCompare(b.numero || "");
+    });
+
+    document.getElementById("sidebarCount").textContent = sorted.length;
+
+    if(sorted.length === 0){
+      list.appendChild(el("div", { class:"sidebar-empty", text:"Aucune affaire en cours." }));
+      return;
+    }
+
+    sorted.forEach(function(a){
+      var type = ZONE_TYPE[a.zone] || "prep";
+      var metaLine = el("span", { class:"sidebar-meta-line" }, [
+        el("span", { class:"sidebar-zone " + type, text: a.zone }),
+        el("span", { class:"age-badge " + classeAnciennete(a), text: texteAnciennete(a) })
+      ]);
+      var ligneNumero = el("span", { class:"sidebar-person-line" }, [
+        elAvatar(a.charge),
+        el("span", { class:"sidebar-num mono", text: a.numero })
+      ]);
+      var ligneCableur;
+      if(type === "attente"){
+        ligneCableur = el("span", { class:"sidebar-cableur", text:"En attente de lancement" });
+      } else {
+        var nomCableur = state.cableurs[a.zone];
+        ligneCableur = el("span", { class:"sidebar-person-line" }, [
+          elAvatar(nomCableur),
+          el("span", { class:"sidebar-cableur", text: nomCableur || "Câbleur non affecté" })
+        ]);
+      }
+      var row = el("button", { type:"button", class:"sidebar-row" }, [
+        ligneNumero,
+        ligneCableur,
+        metaLine
+      ]);
+
+      var lignesManque = [];
+      if(type !== "attente"){
+        if(!a.charge){ lignesManque.push(a.numero + " : chargé d'affaires manquant"); }
+        if(!state.cableurs[a.zone]){ lignesManque.push("Câbleur de la zone non renseigné"); }
+      }
+      if(lignesManque.length > 0){
+        row.appendChild(el("span", { class:"warn-badge", title: lignesManque.join("\n"), text:"!" }));
+      }
+
+      row.addEventListener("click", function(){ openDrawer(a.zone); });
+      list.appendChild(row);
+    });
+  }
+
+  function renderSidebarParCableur(){
+    var list = document.getElementById("sidebarList");
+    list.innerHTML = "";
+
+    var actives = state.affaires.filter(function(a){ return !a.archivee; });
+    var zonesOccupees = {};
+    actives.forEach(function(a){ zonesOccupees[a.zone] = (zonesOccupees[a.zone] || 0) + 1; });
+
+    // un câbleur par zone qu'il tient, même sans affaire dessus pour l'instant
+    var parCableur = {};
+    ALL_ZONES.forEach(function(zone){
+      if(ZONE_TYPE[zone] === "attente") return;
+      var nom = state.cableurs[zone];
+      if(!nom) return;
+      if(!parCableur[nom]) parCableur[nom] = [];
+      parCableur[nom].push({ zone: zone, count: zonesOccupees[zone] || 0 });
+    });
+
+    var noms = Object.keys(parCableur).sort(function(x, y){
+      var totalX = parCableur[x].reduce(function(s, z){ return s + z.count; }, 0);
+      var totalY = parCableur[y].reduce(function(s, z){ return s + z.count; }, 0);
+      return totalY - totalX;
+    });
+
+    document.getElementById("sidebarCount").textContent = noms.length;
+
+    if(noms.length === 0){
+      list.appendChild(el("div", { class:"sidebar-empty", text:"Aucun câbleur affecté à une zone." }));
+      return;
+    }
+
+    noms.forEach(function(nom){
+      var zones = parCableur[nom];
+      var total = zones.reduce(function(s, z){ return s + z.count; }, 0);
+      var zonesChips = el("div", { class:"cableur-summary-zones" });
+      zones.forEach(function(z){
+        var type = ZONE_TYPE[z.zone];
+        zonesChips.appendChild(el("span", {
+          class:"chip mono", text: z.zone + (z.count > 0 ? " (" + z.count + ")" : "")
+        }));
+      });
+      var card = el("div", { class:"cableur-summary" }, [
+        el("div", { class:"cableur-summary-head" }, [
+          elAvatar(nom),
+          el("strong", { text: nom }),
+          el("span", { class:"age-badge age-normal", text: total + (total > 1 ? " affaires" : " affaire") })
+        ]),
+        zonesChips
+      ]);
+      list.appendChild(card);
+    });
+  }
+
+  function joursEntre(debut, fin){
+    return Math.max(0, Math.floor((fin - debut) / UN_JOUR_MS));
+  }
+
+  function renderHistorique(){
+    var cloturees = affairesCloturees();
+    document.getElementById("historiqueCount").textContent = cloturees.length;
+
+    var list = document.getElementById("historiqueList");
+    list.innerHTML = "";
+    if(cloturees.length === 0){
+      list.appendChild(el("div", { class:"sidebar-empty", text:"Aucune affaire clôturée." }));
+      return;
+    }
+    cloturees.forEach(function(a){
+      var type = ZONE_TYPE[a.zone] || "prep";
+      var duree = joursEntre(a.creeLe || a.archiveeLe, a.archiveeLe);
+      var row = el("div", { class:"sidebar-row archivee" }, [
+        el("span", { class:"sidebar-num mono", text: a.numero }),
+        el("span", { class:"cloture-info", text: "Clôturée après " + duree + (duree > 1 ? " jours" : " jour") + " au total" }),
+        el("span", { class:"sidebar-meta-line" }, [ el("span", { class:"sidebar-zone " + type, text: a.zone }) ])
+      ]);
+      list.appendChild(row);
+    });
+  }
+
+  function renderTile(code, type){
+    var affs = affairesInZone(code);
+    var cableur = state.cableurs[code] || "";
+    var visible = matchesFilter(code);
+
+    var chipsWrap = el("div", { class:"chips" });
+    if(affs.length === 0){
+      chipsWrap.appendChild(el("span", { class:"empty", text:"Vide" }));
+    } else {
+      affs.slice(0,3).forEach(function(a){
+        chipsWrap.appendChild(el("span", { class:"chip mono", text:a.numero }));
+      });
+      if(affs.length > 3){
+        chipsWrap.appendChild(el("span", { class:"chip", text:"+" + (affs.length - 3) }));
+      }
+    }
+
+    var libelleCableur = type === "attente"
+      ? "En attente de lancement"
+      : (cableur ? "Câbleur : " + cableur : "Non affecté");
+
+    var tile = el("button", {
+      type:"button",
+      class:"tile " + type + (visible ? "" : " dim")
+    }, [
+      el("span", { class:"code mono", text: code }),
+      el("span", { class:"cableur", text: libelleCableur }),
+      chipsWrap
+    ]);
+
+    var manques = infosManquantes(code, affs);
+    if(manques.length > 0){
+      tile.appendChild(el("span", { class:"warn-badge", title: manques.join("\n"), text:"!" }));
+    }
+
+    tile.addEventListener("click", function(){ openDrawer(code); });
+    return tile;
+  }
+
+  function zoneSelect(currentZone, onChange){
+    var select = el("select", {});
+    GROUPS.forEach(function(g){
+      var group = el("optgroup", { label: g.name });
+      g.codes.forEach(function(code){
+        var opt = el("option", { value: code, text: code });
+        if(code === currentZone) opt.setAttribute("selected", "selected");
+        group.appendChild(opt);
+      });
+      select.appendChild(group);
+    });
+    select.addEventListener("change", function(){ onChange(select.value); });
+    return select;
+  }
+
+  function renderDrawer(code){
+    var drawer = document.getElementById("drawer");
+    drawer.innerHTML = "";
+    if(!code){ drawer.setAttribute("aria-hidden","true"); return; }
+
+    var type = ZONE_TYPE[code];
+    var libelleType = type === "prep" ? "Préparation" : (type === "test" ? "Test" : "Attente");
+    var head = el("div", { class:"drawer-head" }, [
+      el("div", {}, [
+        el("div", { class:"code-badge mono", text: code }),
+        el("span", { class:"type-badge " + type, text: libelleType })
+      ]),
+      el("button", { type:"button", class:"drawer-close", "aria-label":"Fermer", text:"×" })
+    ]);
+    head.querySelector(".drawer-close").addEventListener("click", closeDrawer);
+
+    var cableurField;
+    if(type === "attente"){
+      cableurField = el("p", {
+        class:"modal-hint",
+        text:"Zone d'attente : le matériel reçu patiente ici, sans câbleur ni chargé d'affaires assignés, jusqu'à ce que l'affaire soit lancée et déplacée vers une vraie zone."
+      });
+    } else {
+      cableurField = el("div", {}, [
+        el("label", { class:"field-label", text:"Câbleur affecté à cette zone" })
+      ]);
+      var cableurInput = el("input", { type:"text", class:"cableur-input", placeholder:"Non affecté", value: state.cableurs[code] || "" });
+      cableurInput.value = state.cableurs[code] || "";
+      cableurInput.addEventListener("change", function(){
+        var ancien = state.cableurs[code] || "";
+        var nouveau = cableurInput.value.trim();
+        if(nouveau === ancien) return;
+
+        var nbAffaires = affairesInZone(code).length;
+        var message = "Modifier le câbleur de la zone " + code + " ?";
+        if(nbAffaires > 0){
+          message += " Cela s'appliquera aussi aux " + nbAffaires +
+            (nbAffaires > 1 ? " affaires déjà renseignées" : " affaire déjà renseignée") + " dans cette zone.";
+        }
+        demanderConfirmation(message, function(){
+          state.cableurs[code] = nouveau;
+          saveState(); renderBoard(); renderStats(); renderSidebar();
+        }, function(){
+          cableurInput.value = ancien;
+        });
+      });
+      cableurField.appendChild(cableurInput);
+    }
+
+    var listWrap = el("div", {}, [ el("label", { class:"field-label", text:"Affaires présentes" }) ]);
+    var list = el("div", { class:"affaires-list" });
+    var affs = affairesInZone(code);
+    if(affs.length === 0){
+      list.appendChild(el("div", { class:"no-affaires", text:"Aucune affaire dans cette zone." }));
+    }
+    affs.forEach(function(a){
+      var top = el("div", { class:"top-line" }, [
+        el("span", { class:"numero mono", text: a.numero }),
+        el("span", { class:"age-badge " + classeAnciennete(a), text: texteAnciennete(a) })
+      ]);
+      var chargeInput = el("input", { type:"text", class:"charge-input", placeholder:"Chargé d'affaires" });
+      chargeInput.value = a.charge || "";
+      chargeInput.addEventListener("change", function(){
+        a.charge = chargeInput.value.trim(); saveState(); renderSidebar();
+      });
+      top.appendChild(chargeInput);
+
+      var actions = el("div", { class:"row-actions" });
+      var move = zoneSelect(a.zone, function(newZone){
+        a.zone = newZone; a.zoneDepuisLe = Date.now();
+        saveState(); renderBoard(); renderStats(); renderSidebar(); renderDrawer(code);
+      });
+      var delBtn = el("button", { type:"button", class:"icon-btn danger", text:"Clôturer" });
+      delBtn.addEventListener("click", function(){
+        demanderConfirmation("Clôturer l'affaire " + a.numero + " ? Elle sort du plan mais reste dans l'historique.", function(){
+          a.archivee = true;
+          a.archiveeLe = Date.now();
+          saveState(); renderBoard(); renderStats(); renderSidebar(); renderDrawer(code);
+        });
+      });
+      actions.appendChild(move);
+      actions.appendChild(delBtn);
+
+      var row = el("div", { class:"affaire-row" }, [ top, actions ]);
+      list.appendChild(row);
+    });
+    listWrap.appendChild(list);
+
+    var addForm = el("div", { class:"add-form" }, [
+      el("label", { class:"field-label", text:"Ajouter une affaire dans " + code })
+    ]);
+    var numInput = el("input", { type:"text", placeholder:"N° d'affaire" });
+    var chargeInput2 = el("input", { type:"text", placeholder:"Chargé d'affaires" });
+    var row1 = el("div", { class:"row" }, [ numInput, chargeInput2 ]);
+    var addBtn = el("button", { type:"button", class:"btn-primary", text:"Ajouter l'affaire" });
+    addBtn.addEventListener("click", function(){
+      var numero = numInput.value.trim();
+      if(!numero){ numInput.focus(); return; }
+      ajouterAffaire(numero, chargeInput2.value.trim(), code, function(){ renderDrawer(code); });
+    });
+    addForm.appendChild(row1);
+    addForm.appendChild(addBtn);
+
+    var body = el("div", { class:"drawer-body" }, [ cableurField, listWrap, addForm ]);
+
+    drawer.appendChild(head);
+    drawer.appendChild(body);
+    drawer.setAttribute("aria-hidden","false");
+  }
+
+  function openDrawer(code){
+    closeAddModal();
+    openZone = code;
+    renderDrawer(code);
+    document.getElementById("drawer").classList.add("open");
+    document.getElementById("scrim").classList.add("open");
+  }
+  function closeDrawer(){
+    openZone = null;
+    document.getElementById("drawer").classList.remove("open");
+    document.getElementById("scrim").classList.remove("open");
+  }
+
+  document.getElementById("scrim").addEventListener("click", closeDrawer);
+
+  // confirmation maison : les artifacts tournent dans un cadre isolé où confirm()/alert()
+  // du navigateur sont bloqués (retournent silencieusement "annulé"), d'où ce mini-dialogue.
+  var confirmationEnAttente = null;
+  var annulationEnAttente = null;
+
+  function demanderConfirmation(message, siConfirme, siAnnule){
+    document.getElementById("confirmMessage").textContent = message;
+    confirmationEnAttente = siConfirme;
+    annulationEnAttente = siAnnule || null;
+    document.getElementById("confirmModal").classList.add("open");
+    document.getElementById("confirmModal").setAttribute("aria-hidden", "false");
+    document.getElementById("confirmScrim").classList.add("open");
+  }
+  function fermerConfirmation(executerAnnulation){
+    document.getElementById("confirmModal").classList.remove("open");
+    document.getElementById("confirmModal").setAttribute("aria-hidden", "true");
+    document.getElementById("confirmScrim").classList.remove("open");
+    var annulation = annulationEnAttente;
+    confirmationEnAttente = null;
+    annulationEnAttente = null;
+    if(executerAnnulation && annulation) annulation();
+  }
+  document.getElementById("confirmOk").addEventListener("click", function(){
+    var action = confirmationEnAttente;
+    fermerConfirmation(false);
+    if(action) action();
+  });
+  document.getElementById("confirmCancel").addEventListener("click", function(){ fermerConfirmation(true); });
+  document.getElementById("confirmScrim").addEventListener("click", function(){ fermerConfirmation(true); });
+
+  // fenêtre "nouvelle affaire" : accessible sans passer par une zone précise.
+  // seuls le numéro et la zone sont obligatoires ; câbleur et chargé d'affaires
+  // peuvent être complétés plus tard (le badge orange signale ce qui manque).
+  function populerSelectZoneAjout(){
+    var select = document.getElementById("addZone");
+    select.innerHTML = "";
+    var placeholder = el("option", { value:"", text:"— Choisir une zone —" });
+    placeholder.disabled = true;
+    placeholder.selected = true;
+    select.appendChild(placeholder);
+    GROUPS.forEach(function(g){
+      var group = el("optgroup", { label: g.name });
+      g.codes.forEach(function(code){ group.appendChild(el("option", { value:code, text:code })); });
+      select.appendChild(group);
+    });
+  }
+
+  function openAddModal(){
+    closeDrawer();
+    document.getElementById("addNumero").value = "";
+    document.getElementById("addCharge").value = "";
+    document.getElementById("addError").hidden = true;
+    populerSelectZoneAjout();
+    document.getElementById("addModal").classList.add("open");
+    document.getElementById("addModal").setAttribute("aria-hidden", "false");
+    document.getElementById("addScrim").classList.add("open");
+    document.getElementById("addNumero").focus();
+  }
+  function closeAddModal(){
+    document.getElementById("addModal").classList.remove("open");
+    document.getElementById("addModal").setAttribute("aria-hidden", "true");
+    document.getElementById("addScrim").classList.remove("open");
+  }
+
+  document.getElementById("newAffaireBtn").addEventListener("click", openAddModal);
+  document.getElementById("addModalClose").addEventListener("click", closeAddModal);
+  document.getElementById("addScrim").addEventListener("click", closeAddModal);
+
+  document.getElementById("addSubmit").addEventListener("click", function(){
+    var numero = document.getElementById("addNumero").value.trim();
+    var zone = document.getElementById("addZone").value;
+    var charge = document.getElementById("addCharge").value.trim();
+    var errEl = document.getElementById("addError");
+
+    if(!numero || !zone){
+      errEl.hidden = false;
+      return;
+    }
+    errEl.hidden = true;
+
+    ajouterAffaire(numero, charge, zone, closeAddModal);
+  });
+
+  document.addEventListener("keydown", function(e){
+    if(e.key === "Escape"){ closeDrawer(); closeAddModal(); fermerConfirmation(true); }
+  });
+
+  document.getElementById("search").addEventListener("input", function(e){
+    filterText = e.target.value;
+    renderBoard();
+    renderLookup();
+  });
+
+  function choisirVueSidebar(vue){
+    sidebarView = vue;
+    document.getElementById("tabAffaires").classList.toggle("active", vue === "affaires");
+    document.getElementById("tabCableurs").classList.toggle("active", vue === "cableurs");
+    renderSidebar();
+  }
+  document.getElementById("tabAffaires").addEventListener("click", function(){ choisirVueSidebar("affaires"); });
+  document.getElementById("tabCableurs").addEventListener("click", function(){ choisirVueSidebar("cableurs"); });
+
+  document.getElementById("resetBtn").addEventListener("click", function(){
+    demanderConfirmation("Vider toutes les affaires et câbleurs saisis ?", function(){
+      state = defaultState();
+      saveState(); renderBoard(); renderStats(); renderSidebar(); closeDrawer();
+    });
+  });
+
+  renderBoard();
+  renderStats();
+  renderSidebar();
+  renderLookup();
+})();
+</script>
+
+<script>
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", function () {
+      navigator.serviceWorker.register("sw.js");
+    });
+  }
+</script>
+</body>
+</html>
