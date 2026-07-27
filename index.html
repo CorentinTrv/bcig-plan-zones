@@ -380,6 +380,9 @@
   footer.note{
     margin-top:36px; padding-top:16px; border-top:1px solid var(--line); font-size:.76rem; color:var(--muted); max-width:70ch;
   }
+  .version-tag{
+    margin:14px 0 0; font-size:.68rem; color:var(--accent); font-weight:700; letter-spacing:.02em;
+  }
 
   /* liste des affaires, à gauche du plan */
   .content-layout{ display:flex; gap:28px; align-items:flex-start; }
@@ -563,6 +566,7 @@
     zone, les 6 chargés d'affaires et les 6 câbleurs affectés sont inventés au hasard pour le test, pas recopiés
     du plan papier. Les données restent uniquement dans ce navigateur pour l'instant (rien n'est partagé ni
     sauvegardé ailleurs).
+    <p class="version-tag mono">Version v3 · 27/07/2026 · Palettier/Modula + sections repliables</p>
   </footer>
 </div>
 
@@ -1516,7 +1520,16 @@
 <script>
   if ("serviceWorker" in navigator) {
     window.addEventListener("load", function () {
-      navigator.serviceWorker.register("sw.js");
+      navigator.serviceWorker.register("sw.js").then(function (reg) {
+        reg.addEventListener("updatefound", function () {
+          var nouveau = reg.installing;
+          nouveau.addEventListener("statechange", function () {
+            if (nouveau.state === "activated") {
+              window.location.reload();
+            }
+          });
+        });
+      });
     });
   }
 </script>
