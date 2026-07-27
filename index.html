@@ -366,6 +366,10 @@
     border:1px solid var(--line); background:var(--surface); border-radius:6px; padding:5px 8px; font-size:.72rem; color:var(--muted);
   }
   .icon-btn.danger:hover{ background:var(--danger); color:var(--danger-ink); border-color:var(--danger); }
+  /* couleur du bouton Commande : vide (rien saisi) / manque (reste à livrer) / complet */
+  .icon-btn.commande-statut-vide{ background:color-mix(in srgb, var(--danger) 16%, var(--surface)); color:var(--danger); border-color:var(--danger); }
+  .icon-btn.commande-statut-manque{ background:color-mix(in srgb, var(--warn) 16%, var(--surface)); color:var(--warn); border-color:var(--warn); }
+  .icon-btn.commande-statut-complet{ background:color-mix(in srgb, var(--usinage) 16%, var(--surface)); color:var(--usinage); border-color:var(--usinage); }
   .no-affaires{ font-size:.82rem; color:var(--muted); font-style:italic; padding:6px 2px; }
 
   .add-form{
@@ -510,6 +514,26 @@
     font-size:.72rem; color:var(--muted); flex:none;
   }
   .btn-commande:hover{ color:var(--accent); border-color:var(--accent); }
+
+  /* lecture de photo (OCR local, sans backend) : bouton déclencheur + zone de relecture éditable
+     avant tout ajout réel, même logique de confirmation que partout ailleurs dans l'outil */
+  .photo-btn{ align-self:flex-start; font-size:.76rem; }
+  .relecture{
+    border:1px dashed var(--accent); border-radius:8px; padding:10px; display:flex;
+    flex-direction:column; gap:8px; background:color-mix(in srgb, var(--accent) 6%, var(--surface));
+  }
+  .relecture-statut{ margin:0; font-size:.78rem; color:var(--muted); }
+  .relecture-lignes{ display:flex; flex-direction:column; gap:6px; max-height:220px; overflow-y:auto; }
+  .ligne-relecture{ display:flex; gap:6px; align-items:center; }
+  .ligne-relecture input[type="text"]{
+    flex:1; padding:6px 8px; border-radius:6px; border:1px solid var(--line); background:var(--surface);
+    color:var(--ink); font-size:.8rem;
+  }
+  .relecture-brut{ font-size:.7rem; color:var(--muted); }
+  .relecture-brut pre{
+    white-space:pre-wrap; word-break:break-word; max-height:140px; overflow-y:auto; margin:6px 0 0;
+    padding:8px; background:var(--surface-2); border-radius:6px; font-size:.7rem;
+  }
 </style>
 
 </head>
@@ -601,12 +625,15 @@
     l'Usinage n'ont pas de détail d'emplacement (une seule zone chacun). Chaque section du plan et de la liste
     se replie/déplie indépendamment. Les numéros d'affaires (format A2600 + 3 chiffres), leur nombre par
     zone, les 6 chargés d'affaires et les 6 câbleurs affectés sont inventés au hasard pour le test, pas recopiés
-    du plan papier. Bouton « Commande » sur chaque affaire (dans sa zone) : bon de commande recopié à la main
-    (PDF fournisseur pour l'instant, pas de lecture automatique), BL reçus ligne à ligne, reste à livrer calculé
-    tout seul et rappelé dans la recherche du haut. Convergence commande/BL faite au niveau de l'affaire entière,
-    pas armoire par armoire (simplification volontaire du 27/07). Les données restent uniquement dans ce
-    navigateur pour l'instant (rien n'est partagé ni sauvegardé ailleurs).
-    <p class="version-tag mono">Version v8 · 27/07/2026 · Commande / BL / reste à livrer, par affaire</p>
+    du plan papier. Bouton « Commande » sur chaque affaire (dans sa zone), coloré rouge tant que rien n'est
+    saisi, orange s'il manque des articles, vert quand tout est reçu : bon de commande et BL peuvent être
+    saisis à la main OU lus par photo (OCR local, gratuit, sans backend ni IA), les lignes détectées restent
+    éditables avant tout ajout. Reste à livrer calculé tout seul, rappelé dans la recherche du haut.
+    Convergence commande/BL faite au niveau de l'affaire entière, pas armoire par armoire (simplification
+    volontaire du 27/07). La lecture photo ne fonctionne que sur le vrai site déployé, pas dans un aperçu
+    Claude. Les données restent uniquement dans ce navigateur pour l'instant (rien n'est partagé ni
+    sauvegardé ailleurs).
+    <p class="version-tag mono">Version v9 · 27/07/2026 · Lecture photo (OCR local), bouton Commande coloré</p>
   </footer>
 </div>
 
@@ -657,12 +684,27 @@
   </div>
   <div class="modal-body">
     <div class="commande-section">
-      <label class="field-label">Bon de commande (attendu, PDF fournisseur recopié à la main pour l'instant)</label>
+      <label class="field-label">Bon de commande (attendu)</label>
       <div id="commandeLignes" class="commande-lignes"></div>
       <div class="row">
         <input type="text" id="commandeArticle" placeholder="Article" />
         <input type="number" id="commandeQte" placeholder="Qté" min="1" class="qte-input" />
         <button type="button" class="btn-primary" id="commandeAjouter">+ Ligne</button>
+      </div>
+      <button type="button" class="btn-ghost photo-btn" id="commandePhotoBtn">📷 Lire une photo du bon de commande</button>
+      <input type="file" id="commandePhotoInput" accept="image/*" capture="environment" hidden />
+      <div class="relecture" id="commandeRelecture" hidden>
+        <p class="relecture-statut" id="commandeRelectureStatut"></p>
+        <div id="commandeRelectureLignes" class="relecture-lignes"></div>
+        <button type="button" class="btn-commande" id="commandeRelectureAjouterLigne">+ Ajouter une ligne</button>
+        <details class="relecture-brut">
+          <summary>Texte brut détecté</summary>
+          <pre id="commandeRelectureBrut"></pre>
+        </details>
+        <div class="row">
+          <button type="button" class="btn-ghost" id="commandeRelectureAnnuler">Annuler</button>
+          <button type="button" class="btn-primary" id="commandeRelectureValider">Ajouter ces lignes</button>
+        </div>
       </div>
     </div>
 
@@ -678,6 +720,21 @@
         <input type="text" id="blArticle" placeholder="Article" />
         <input type="number" id="blQte" placeholder="Qté" min="1" class="qte-input" />
         <button type="button" class="btn-primary" id="blAjouterLigne">+ Ligne reçue</button>
+      </div>
+      <button type="button" class="btn-ghost photo-btn" id="blPhotoBtn">📷 Lire une photo du BL</button>
+      <input type="file" id="blPhotoInput" accept="image/*" capture="environment" hidden />
+      <div class="relecture" id="blRelecture" hidden>
+        <p class="relecture-statut" id="blRelectureStatut"></p>
+        <div id="blRelectureLignes" class="relecture-lignes"></div>
+        <button type="button" class="btn-commande" id="blRelectureAjouterLigne">+ Ajouter une ligne</button>
+        <details class="relecture-brut">
+          <summary>Texte brut détecté</summary>
+          <pre id="blRelectureBrut"></pre>
+        </details>
+        <div class="row">
+          <button type="button" class="btn-ghost" id="blRelectureAnnuler">Annuler</button>
+          <button type="button" class="btn-primary" id="blRelectureValider">Ajouter ces lignes</button>
+        </div>
       </div>
     </div>
   </div>
@@ -1170,6 +1227,13 @@
     });
   }
 
+  // vide (rien saisi) / manque (au moins un article pas complet) / complet (tout reçu)
+  function statutCommande(affaire){
+    if(!affaire.commande || affaire.commande.length === 0) return "vide";
+    var manque = resteALivrer(affaire).some(function(l){ return !l.horsCommande && l.reste > 0; });
+    return manque ? "manque" : "complet";
+  }
+
   // repère une saisie en double (faute de frappe qui recrée une affaire déjà suivie ailleurs)
   function trouverAffaireActiveParNumero(numero){
     var cherche = numero.trim().toLowerCase();
@@ -1514,7 +1578,9 @@
         a.zone = newZone; a.zoneDepuisLe = Date.now();
         saveState(); renderBoard(); renderStats(); renderSidebar(); renderDrawer(code);
       });
-      var commandeBtn = el("button", { type:"button", class:"icon-btn", text:"Commande" });
+      var commandeBtn = el("button", {
+        type:"button", class:"icon-btn commande-statut-" + statutCommande(a), text:"Commande"
+      });
       commandeBtn.addEventListener("click", function(){ ouvrirCommandeModal(a.id); });
       var delBtn = el("button", { type:"button", class:"icon-btn danger", text:"Clôturer" });
       delBtn.addEventListener("click", function(){
@@ -1647,6 +1713,8 @@
     document.getElementById("commandeQte").value = "";
     document.getElementById("blArticle").value = "";
     document.getElementById("blQte").value = "";
+    fermerRelecture("commande");
+    fermerRelecture("bl");
     renderCommandeModal();
     document.getElementById("commandeModal").classList.add("open");
     document.getElementById("commandeModal").setAttribute("aria-hidden", "false");
@@ -1719,6 +1787,151 @@
       ]));
     });
   }
+
+  // ==========================================================================
+  // Lecture de photo (OCR local via Tesseract.js, aucun backend, aucun coût).
+  // Chargée à la demande depuis un CDN : ne fonctionne PAS dans cet aperçu Claude
+  // (le bac à sable bloque les requêtes réseau), fonctionne sur le vrai site déployé.
+  // Règle gravée comme partout ailleurs dans l'outil : l'OCR LIT, rien n'est jamais
+  // ajouté sans relecture et validation explicite (les lignes détectées sont éditables
+  // avant tout enregistrement, exactement comme le reste de l'app fonctionne à la voix
+  // ou au clavier sur Stovo).
+  // ==========================================================================
+  var CIBLES_COMMANDE = {
+    commande: { champ: "commande", prefixe: "commande" },
+    bl: { champ: "receptionsLignes", prefixe: "bl" }
+  };
+  var relectureEnCours = {}; // { commande: [{article, quantite}], bl: [...] }
+
+  function elCible(cible, suffixe){
+    return document.getElementById(CIBLES_COMMANDE[cible].prefixe + suffixe);
+  }
+
+  var tesseractChargement = null;
+  function chargerTesseract(){
+    if(window.Tesseract) return Promise.resolve();
+    if(tesseractChargement) return tesseractChargement;
+    tesseractChargement = new Promise(function(resolve, reject){
+      var script = document.createElement("script");
+      script.src = "https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js";
+      script.onload = function(){ resolve(); };
+      script.onerror = function(){
+        tesseractChargement = null;
+        reject(new Error("Lecture indisponible ici (bloquée par cet aperçu, ou pas de réseau). Teste sur le vrai lien."));
+      };
+      document.head.appendChild(script);
+    });
+    return tesseractChargement;
+  }
+
+  // Première passe, à ajuster une fois testée sur un vrai bon de commande / BL BCIG :
+  // pour chaque ligne de texte détectée, on cherche le DERNIER nombre isolé (la quantité,
+  // avec une unité optionnelle style "u"/"pce"), et on garde ce qui précède comme article,
+  // en retirant un éventuel code référence en tête de ligne (lettres/chiffres/tirets courts).
+  function analyserLignesDocument(texteBrut){
+    var lignes = texteBrut.split("\n").map(function(l){ return l.trim(); }).filter(Boolean);
+    var resultats = [];
+    lignes.forEach(function(ligne){
+      var m = ligne.match(/(\d+(?:[.,]\d+)?)\s*(?:u|pces?|pcs?)?\s*$/i);
+      if(!m) return;
+      var quantite = parseFloat(m[1].replace(",", "."));
+      if(!quantite || quantite <= 0) return;
+      var article = ligne.slice(0, m.index).trim();
+      article = article.replace(/^[A-Z0-9][A-Z0-9\-.]{2,}\s+/i, "").trim();
+      if(article.length < 2) return;
+      resultats.push({ article: article, quantite: quantite });
+    });
+    return resultats;
+  }
+
+  function ouvrirRelecture(cible){
+    elCible(cible, "Relecture").hidden = false;
+  }
+  function fermerRelecture(cible){
+    elCible(cible, "Relecture").hidden = true;
+    relectureEnCours[cible] = [];
+  }
+
+  function demarrerLecturePhoto(cible, fichier){
+    relectureEnCours[cible] = [];
+    ouvrirRelecture(cible);
+    elCible(cible, "RelectureStatut").textContent = "Chargement de la lecture…";
+    elCible(cible, "RelectureLignes").innerHTML = "";
+    elCible(cible, "RelectureBrut").textContent = "";
+
+    chargerTesseract()
+      .then(function(){
+        elCible(cible, "RelectureStatut").textContent = "Lecture de la photo en cours…";
+        return window.Tesseract.recognize(fichier, "fra");
+      })
+      .then(function(resultat){
+        var texte = (resultat && resultat.data && resultat.data.text) || "";
+        relectureEnCours[cible] = analyserLignesDocument(texte);
+        elCible(cible, "RelectureBrut").textContent = texte || "(rien détecté)";
+        elCible(cible, "RelectureStatut").textContent = relectureEnCours[cible].length > 0
+          ? relectureEnCours[cible].length + " ligne(s) détectée(s) : vérifie et corrige avant d'ajouter."
+          : "Rien reconnu automatiquement. Regarde le texte brut ci-dessous et ajoute les lignes à la main.";
+        renderLignesRelecture(cible);
+      })
+      .catch(function(err){
+        elCible(cible, "RelectureStatut").textContent = (err && err.message) || "Échec de la lecture.";
+      });
+  }
+
+  function renderLignesRelecture(cible){
+    var wrap = elCible(cible, "RelectureLignes");
+    wrap.innerHTML = "";
+    relectureEnCours[cible].forEach(function(l, index){
+      var articleInput = el("input", { type:"text", value:l.article, placeholder:"Article" });
+      articleInput.value = l.article;
+      articleInput.addEventListener("input", function(){ l.article = articleInput.value; });
+
+      var qteInput = el("input", { type:"number", min:"1", class:"qte-input" });
+      qteInput.value = l.quantite;
+      qteInput.addEventListener("input", function(){ l.quantite = parseFloat(qteInput.value) || 0; });
+
+      var delBtn = el("button", { type:"button", class:"btn-commande", text:"×" });
+      delBtn.addEventListener("click", function(){
+        relectureEnCours[cible].splice(index, 1);
+        renderLignesRelecture(cible);
+      });
+
+      wrap.appendChild(el("div", { class:"ligne-relecture" }, [ articleInput, qteInput, delBtn ]));
+    });
+  }
+
+  function validerRelecture(cible){
+    var affaire = trouverAffaireParId(commandeAffaireId);
+    if(!affaire) return;
+    var champ = CIBLES_COMMANDE[cible].champ;
+    if(!affaire[champ]) affaire[champ] = [];
+    relectureEnCours[cible].forEach(function(l){
+      var article = (l.article || "").trim();
+      var quantite = parseFloat(l.quantite);
+      if(!article || !quantite || quantite <= 0) return;
+      affaire[champ].push({ id: uid(), article: article, quantite: quantite, ajouteLe: Date.now() });
+    });
+    saveState();
+    fermerRelecture(cible);
+    renderCommandeModal();
+  }
+
+  ["commande", "bl"].forEach(function(cible){
+    elCible(cible, "PhotoBtn").addEventListener("click", function(){
+      elCible(cible, "PhotoInput").click();
+    });
+    elCible(cible, "PhotoInput").addEventListener("change", function(e){
+      var fichier = e.target.files && e.target.files[0];
+      e.target.value = ""; // permet de reprendre la même photo une seconde fois si besoin
+      if(fichier) demarrerLecturePhoto(cible, fichier);
+    });
+    elCible(cible, "RelectureAjouterLigne").addEventListener("click", function(){
+      relectureEnCours[cible].push({ article:"", quantite:1 });
+      renderLignesRelecture(cible);
+    });
+    elCible(cible, "RelectureAnnuler").addEventListener("click", function(){ fermerRelecture(cible); });
+    elCible(cible, "RelectureValider").addEventListener("click", function(){ validerRelecture(cible); });
+  });
 
   document.getElementById("newAffaireBtn").addEventListener("click", openAddModal);
   document.getElementById("addModalClose").addEventListener("click", closeAddModal);
