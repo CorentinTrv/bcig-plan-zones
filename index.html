@@ -33,6 +33,9 @@
     --attente:#7d97a6;
     --attente-ink:#10191d;
     --attente-surface:#233138;
+    --usinage:#4a9b76;
+    --usinage-ink:#ffffff;
+    --usinage-surface:#16302a;
     --accent:#dd6690;
     --accent-ink:#2a0c17;
     --danger:#e0685a;
@@ -46,6 +49,7 @@
     --ink:#241a1e; --paper:#f6f2ec; --surface:#ffffff; --surface-2:#ece5dc; --line:#ded3c6; --muted:#7a6b64;
     --prep-ink:#4a3400; --prep-surface:#fff6de; --test:#2f6fa8; --test-ink:#ffffff; --test-surface:#e7f0f8;
     --attente:#3b5667; --attente-ink:#ffffff; --attente-surface:#e6ecef;
+    --usinage:#2f8058; --usinage-ink:#ffffff; --usinage-surface:#e3f3ec;
     --accent:#9b1c51; --accent-ink:#ffffff; --danger:#b23a2e; --danger-ink:#ffffff;
     --warn:#b5541a; --warn-ink:#ffffff;
     --shadow: 0 1px 2px rgba(36,26,30,.08), 0 8px 24px -12px rgba(36,26,30,.28);
@@ -54,6 +58,7 @@
     --ink:#f1e7e2; --paper:#1b1416; --surface:#251b1e; --surface-2:#2f2225; --line:#4a3a3d; --muted:#b5a29b;
     --prep-ink:#2a1f00; --prep-surface:#3a2c07; --test:#5b9bd1; --test-ink:#0b1720; --test-surface:#16303f;
     --attente:#7d97a6; --attente-ink:#10191d; --attente-surface:#233138;
+    --usinage:#4a9b76; --usinage-ink:#ffffff; --usinage-surface:#16302a;
     --accent:#dd6690; --accent-ink:#2a0c17; --danger:#e0685a; --danger-ink:#2a0d09;
     --warn:#e0912f; --warn-ink:#2a1400;
     --shadow: 0 1px 2px rgba(0,0,0,.5), 0 8px 24px -12px rgba(0,0,0,.7);
@@ -105,6 +110,7 @@
   .legend i.prep{ background:var(--prep); }
   .legend i.test{ background:var(--test); }
   .legend i.attente{ background:var(--attente); }
+  .legend i.usinage{ background:var(--usinage); }
 
   .toolbar{
     display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-bottom:14px;
@@ -127,6 +133,7 @@
   .lookup-result.found-prep{ background:var(--prep-surface); color:var(--ink); border-color:var(--prep); }
   .lookup-result.found-test{ background:var(--test-surface); color:var(--ink); border-color:var(--test); }
   .lookup-result.found-attente{ background:var(--attente-surface); color:var(--ink); border-color:var(--attente); }
+  .lookup-result.found-usinage{ background:var(--usinage-surface); color:var(--ink); border-color:var(--usinage); }
   .lookup-result.multiple{ background:var(--surface-2); color:var(--ink); border-color:var(--line); }
   .lookup-result.unknown{ background:color-mix(in srgb, var(--warn) 14%, var(--surface)); color:var(--warn); border-color:var(--warn); }
   .stat-row{ display:flex; gap:16px; align-items:center; font-size:.78rem; color:var(--muted); }
@@ -139,6 +146,7 @@
   .occ-seg{ height:100%; }
   .occ-seg:not(:last-child){ border-right:2px solid var(--surface-2); }
   .occ-seg.occ-attente{ background:var(--attente); }
+  .occ-seg.occ-usinage{ background:var(--usinage); }
   .occ-seg.occ-prep{ background:var(--prep); }
   .occ-seg.occ-test{ background:var(--test); }
   .btn-ghost{
@@ -190,11 +198,13 @@
   .tile.prep{ background:var(--prep-surface); border-color:color-mix(in srgb, var(--prep) 45%, transparent); }
   .tile.test{ background:var(--test-surface); border-color:color-mix(in srgb, var(--test) 45%, transparent); }
   .tile.attente{ background:var(--attente-surface); border-color:color-mix(in srgb, var(--attente) 45%, transparent); }
+  .tile.usinage{ background:var(--usinage-surface); border-color:color-mix(in srgb, var(--usinage) 45%, transparent); }
   .tile.dim{ opacity:.32; }
   .tile .code{ font-weight:700; font-size:.86rem; }
   .tile.prep .code{ color:var(--prep-ink); }
   .tile.test .code{ color:var(--test-ink); background:var(--test); display:inline-block; padding:1px 6px; border-radius:5px; width:fit-content; }
   .tile.attente .code{ color:var(--attente-ink); background:var(--attente); display:inline-block; padding:1px 6px; border-radius:5px; width:fit-content; }
+  .tile.usinage .code{ color:var(--usinage-ink); background:var(--usinage); display:inline-block; padding:1px 6px; border-radius:5px; width:fit-content; }
   .tile .cableur{ font-size:.68rem; color:var(--muted); font-style:italic; }
   .tile .chips{ display:flex; flex-wrap:wrap; gap:3px; margin-top:auto; }
   .chip{
@@ -237,7 +247,7 @@
   .board-c-col{ grid-column:2; grid-row:3; }
 
   #boardTest, #boardAB, #boardC{ display:flex; flex-direction:column; gap:8px; }
-  #boardAttente{ display:flex; flex-wrap:wrap; gap:10px; max-width:420px; }
+  #boardAttente{ display:flex; flex-wrap:wrap; gap:10px; max-width:520px; }
   #boardAttente .tile{ flex:1; min-width:150px; }
 
   .lanceur{ min-height:82px; width:100%; }
@@ -311,6 +321,7 @@
   .type-badge.prep{ background:var(--prep-surface); color:var(--prep-ink); border:1px solid var(--prep); }
   .type-badge.test{ background:var(--test); color:var(--test-ink); }
   .type-badge.attente{ background:var(--attente); color:var(--attente-ink); }
+  .type-badge.usinage{ background:var(--usinage); color:var(--usinage-ink); }
   .drawer-close{
     background:none; border:none; font-size:1.2rem; line-height:1; color:var(--muted); padding:4px;
   }
@@ -434,6 +445,7 @@
   .sidebar-zone.prep{ background:var(--prep-surface); color:var(--prep-ink); }
   .sidebar-zone.test{ background:var(--test); color:var(--test-ink); }
   .sidebar-zone.attente{ background:var(--attente); color:var(--attente-ink); }
+  .sidebar-zone.usinage{ background:var(--usinage); color:var(--usinage-ink); }
 
   @media (max-width:900px){
     .content-layout{ flex-direction:column; }
@@ -478,6 +490,7 @@
     </div>
     <div class="legend">
       <span class="swatch"><i class="attente"></i>Attente (réceptionné, pas encore lancé)</span>
+      <span class="swatch"><i class="usinage"></i>Usinage (base de l'armoire)</span>
       <span class="swatch"><i class="prep"></i>Préparation (câbleurs)</span>
       <span class="swatch"><i class="test"></i>Tests</span>
     </div>
@@ -543,17 +556,18 @@
     la colonne C séparée à droite (décalée pour démarrer au niveau de A/B, comme sur le papier, sans boîte de test
     au-dessus), et en bas à gauche les blocs T et I en 2 colonnes de petites boîtes à 2 cases. Les 3 boîtes bleues
     du haut n'avaient que deux repères visibles (E1–E4) ; j'ai ajouté E5/E6 par défaut pour la troisième, à
-    renommer si besoin. Le Palettier et le Modula (zones d'attente, en haut) et toute leur logique n'existaient
-    pas sur le plan papier, ils traduisent le vrai geste de la réception : stocker le matériel avant que l'affaire
-    ne soit lancée. Cliquer sur Palettier ou Modula replie les zones de test et affiche le détail à la place ;
-    le Palettier a de vrais emplacements numérotés (rack + niveau + position, ex. A001, A101), avec l'hypothèse
-    à confirmer sur place de 4 racks (A-D), 3 niveaux et 2 positions par niveau ; le Modula n'a pas de détail
-    d'emplacement (le rangement interne n'a pas besoin d'être suivi à la main). Chaque section du plan et de la
-    liste se replie/déplie indépendamment. Les numéros d'affaires (format A2600 + 3 chiffres), leur nombre par
+    renommer si besoin. Le Palettier, le Modula et l'Usinage (zones avant lancement, en haut) et toute leur
+    logique n'existaient pas sur le plan papier, ils traduisent le vrai geste de la réception : stocker le
+    matériel, ou envoyer la base d'une armoire directement à l'usinage, avant que l'affaire ne soit lancée par
+    le chargé d'affaires. Cliquer sur Palettier, Modula ou Usinage replie les zones de test et affiche le détail
+    à la place ; le Palettier a de vrais emplacements numérotés (rack + niveau + position, ex. A001, A101), avec
+    l'hypothèse à confirmer sur place de 4 racks (A-D), 3 niveaux et 2 positions par niveau ; le Modula et
+    l'Usinage n'ont pas de détail d'emplacement (une seule zone chacun). Chaque section du plan et de la liste
+    se replie/déplie indépendamment. Les numéros d'affaires (format A2600 + 3 chiffres), leur nombre par
     zone, les 6 chargés d'affaires et les 6 câbleurs affectés sont inventés au hasard pour le test, pas recopiés
     du plan papier. Les données restent uniquement dans ce navigateur pour l'instant (rien n'est partagé ni
     sauvegardé ailleurs).
-    <p class="version-tag mono">Version v6 · 27/07/2026 · Thème sombre unique, partout</p>
+    <p class="version-tag mono">Version v7 · 27/07/2026 · Zone Usinage (base de l'armoire, avant lancement)</p>
   </footer>
 </div>
 
@@ -617,6 +631,10 @@
   var GROUPS = [
     { name:"Attente — Palettier", type:"attente", codes: PALETTIER_CODES },
     { name:"Attente — Modula", type:"attente", codes:["MODULA"] },
+    // usinage : base de l'armoire réceptionnée, part directement là (pas au Palettier/Modula).
+    // Une seule zone pour le moment (confirmé le 27/07). Type distinct de "attente" pour la
+    // couleur, mais mêmes règles (ni câbleur ni chargé d'affaires exigés avant lancement).
+    { name:"Usinage", type:"usinage", codes:["USINAGE"] },
     { name:"Zones de test", type:"test", codes:["E1","E2","E3","E4","E5","E6"] },
     { name:"Préparation — colonne A", type:"prep", codes:["A10","A9","A8","A7","A6","A5","A4","A3","A2","A1"] },
     { name:"Préparation — colonne B", type:"prep", codes:["B10","B9","B8","B7","B6","B5","B4","B3","B2","B1"] },
@@ -631,6 +649,13 @@
     g.codes.forEach(function(c){ ALL_ZONES.push(c); ZONE_TYPE[c] = g.type; });
   });
 
+  // "attente" (Palettier/Modula) et "usinage" partagent les mêmes règles avant lancement :
+  // ni câbleur ni chargé d'affaires exigés, exclues des "affaires en cours". Seule la
+  // couleur/le libellé changent. Un seul point de vérité pour ne pas les faire diverger.
+  function estPreLancement(type){
+    return type === "attente" || type === "usinage";
+  }
+
   var STORAGE_KEY = "plan-zones-croquis-v5";
 
   var NAMES = ["Julien Marchand", "Camille Rousseau", "Nicolas Perrin", "Sophie Lambert", "Thomas Girard", "Élise Fontaine"];
@@ -638,7 +663,7 @@
 
   // nombre d'affaires inventé par zone (beaucoup à 0, comme sur le plan papier)
   var ZONE_SEED_COUNTS = [
-    ["A001",1], ["A101",1], ["B001",1], ["MODULA",2],
+    ["A001",1], ["A101",1], ["B001",1], ["MODULA",2], ["USINAGE",1],
     ["E1",3], ["E2",2], ["E3",4], ["E4",1], ["E5",0], ["E6",2],
     ["A10",0], ["A9",2], ["A8",1], ["A7",2], ["A6",3], ["A5",1], ["A4",1], ["A3",3], ["A2",2], ["A1",1],
     ["B10",0], ["B9",1], ["B8",0], ["B7",1], ["B6",0], ["B5",1], ["B4",1], ["B3",2], ["B2",2], ["B1",1],
@@ -665,7 +690,7 @@
     var maintenant = Date.now();
     ZONE_SEED_COUNTS.forEach(function(pair){
       var zone = pair[0], count = pair[1];
-      var enAttente = ZONE_TYPE[zone] === "attente";
+      var enPreLancement = estPreLancement(ZONE_TYPE[zone]);
       for(var i=0; i<count; i++){
         var numero;
         do {
@@ -673,8 +698,8 @@
           numero = "A2600" + String(suffix).padStart(3, "0");
         } while(used[numero]);
         used[numero] = true;
-        // en attente : le chargé d'affaires n'est pas encore connu à la réception
-        var charge = enAttente ? "" : NAMES[Math.floor(rand() * NAMES.length)];
+        // avant lancement (attente ou usinage) : le chargé d'affaires n'est pas encore connu
+        var charge = enPreLancement ? "" : NAMES[Math.floor(rand() * NAMES.length)];
         var ancienneteJours = Math.floor(rand() * 12);
         var horodatage = maintenant - ancienneteJours * UN_JOUR_MS;
         affaires.push({
@@ -686,7 +711,7 @@
     });
     var cableurs = {};
     ALL_ZONES.forEach(function(code){
-      if(ZONE_TYPE[code] === "attente") return; // pas de câbleur assigné à une zone d'attente
+      if(estPreLancement(ZONE_TYPE[code])) return; // pas de câbleur avant lancement (attente/usinage)
       cableurs[code] = CABLEURS[Math.floor(rand() * CABLEURS.length)];
     });
     return { cableurs: cableurs, affaires: affaires };
@@ -737,6 +762,12 @@
       banniere.appendChild(el("span", {}, [
         document.createTextNode(a.numero + " est en attente (" + a.zone + "), l'affaire n'a pas encore été lancée."),
         el("span", { class:"lookup-sub", text:"Ajoute le colis à cet endroit, avec le reste." })
+      ]));
+    } else if(type === "usinage"){
+      banniere.appendChild(el("span", { class:"lookup-icon", text:"⚙" }));
+      banniere.appendChild(el("span", {}, [
+        document.createTextNode(a.numero + " a sa base en usinage, l'affaire n'a pas encore été lancée."),
+        el("span", { class:"lookup-sub", text:"Dépose le colis en zone d'usinage." })
       ]));
     } else {
       var cableur = state.cableurs[a.zone];
@@ -802,27 +833,27 @@
   }
 
   function renderStats(){
-    // "affaires en cours" = lancées (hors attente), cohérent avec la liste de gauche
+    // "affaires en cours" = lancées (hors attente et usinage), cohérent avec la liste de gauche
     document.getElementById("statAffaires").textContent = state.affaires.filter(function(a){
-      return !a.archivee && ZONE_TYPE[a.zone] !== "attente";
+      return !a.archivee && !estPreLancement(ZONE_TYPE[a.zone]);
     }).length;
 
     var occupied = new Set(state.affaires.filter(function(a){ return !a.archivee; }).map(function(a){ return a.zone; }));
     document.getElementById("statZones").textContent = occupied.size + " / " + ALL_ZONES.length;
 
-    var comptes = { attente:0, prep:0, test:0 };
+    var comptes = { attente:0, usinage:0, prep:0, test:0 };
     occupied.forEach(function(zone){
       var t = ZONE_TYPE[zone];
       if(comptes[t] !== undefined) comptes[t]++;
     });
     var bar = document.getElementById("occupancyBar");
     bar.innerHTML = "";
-    ["attente","prep","test"].forEach(function(t){
+    ["attente","usinage","prep","test"].forEach(function(t){
       if(comptes[t] === 0) return;
       var pct = (comptes[t] / ALL_ZONES.length) * 100;
       bar.appendChild(el("span", { class:"occ-seg occ-" + t, style:"width:" + pct + "%" }));
     });
-    bar.title = comptes.attente + " attente · " + comptes.prep + " préparation · " + comptes.test + " test";
+    bar.title = comptes.attente + " attente · " + comptes.usinage + " usinage · " + comptes.prep + " préparation · " + comptes.test + " test";
   }
 
   // Reprend la géométrie exacte relevée sur la photo :
@@ -882,12 +913,13 @@
   // les deux "lanceurs" Palettier / Modula : pas des zones réelles pour Palettier (qui en
   // regroupe 24), donc un composant à part plutôt que renderTile ; le clic replie/déplie
   // le détail à la place des zones de test, il n'ouvre jamais le panneau latéral directement
-  function renderLanceur(titre, codes, cle){
+  function renderLanceur(titre, codes, cle, type){
     var total = compterAffairesActives(codes);
     var actif = attenteDetail === cle;
-    var btn = el("button", { type:"button", class:"tile attente lanceur" + (actif ? " actif" : "") }, [
+    var mot = type === "usinage" ? " en usinage" : " en attente";
+    var btn = el("button", { type:"button", class:"tile " + type + " lanceur" + (actif ? " actif" : "") }, [
       el("span", { class:"code mono", text: titre }),
-      el("span", { class:"cableur", text: total + (total > 1 ? " affaires en attente" : " affaire en attente") }),
+      el("span", { class:"cableur", text: total + (total > 1 ? " affaires" + mot : " affaire" + mot) }),
       el("span", { class:"lanceur-fleche", text: actif ? "▲ replier" : "▼ voir le détail" })
     ]);
     btn.addEventListener("click", function(){
@@ -900,8 +932,9 @@
   function renderAttenteRow(){
     var wrap = document.getElementById("boardAttente");
     wrap.innerHTML = "";
-    wrap.appendChild(renderLanceur("Palettier", PALETTIER_CODES, "palettier"));
-    wrap.appendChild(renderLanceur("Modula", ["MODULA"], "modula"));
+    wrap.appendChild(renderLanceur("Palettier", PALETTIER_CODES, "palettier", "attente"));
+    wrap.appendChild(renderLanceur("Modula", ["MODULA"], "modula", "attente"));
+    wrap.appendChild(renderLanceur("Usinage", ["USINAGE"], "usinage", "usinage"));
   }
 
   function boutonRetourAttente(){
@@ -945,6 +978,13 @@
       return;
     }
 
+    if(attenteDetail === "usinage"){
+      titre.textContent = "Usinage — détail";
+      wrap.appendChild(boutonRetourAttente());
+      wrap.appendChild(renderTile("USINAGE", "usinage"));
+      return;
+    }
+
     titre.textContent = "Zones de test";
     chunk(BOARD.test, 2).forEach(function(pair){ wrap.appendChild(renderPairBox(pair)); });
   }
@@ -976,7 +1016,7 @@
     BOARD.ab.forEach(function(quad){ prep.push(quad[0], quad[1], quad[2], quad[3]); });
     prep = prep.concat(BOARD.c);
     BOARD.bottom.forEach(function(pair){ prep.push(pair[0], pair[1]); });
-    return PALETTIER_CODES.concat(["MODULA"], prep, BOARD.test);
+    return PALETTIER_CODES.concat(["MODULA", "USINAGE"], prep, BOARD.test);
   })();
 
   function initialesDe(nom){
@@ -1050,8 +1090,8 @@
   // ce helper regroupe les deux manques pour un affichage unique
   function infosManquantes(zoneCode, affs){
     var lignes = [];
-    // en attente : ni câbleur ni chargé d'affaires ne sont censés être connus, ce n'est pas une anomalie
-    if(ZONE_TYPE[zoneCode] === "attente") return lignes;
+    // avant lancement (attente/usinage) : ni câbleur ni chargé d'affaires ne sont censés être connus
+    if(estPreLancement(ZONE_TYPE[zoneCode])) return lignes;
     if(affs.length > 0 && !state.cableurs[zoneCode]){
       lignes.push("Câbleur de la zone non renseigné");
     }
@@ -1082,11 +1122,11 @@
 
     var orderIndex = {};
     SIDEBAR_ORDER.forEach(function(code, i){ orderIndex[code] = i; });
-    // les affaires en attente (Palettier/Modula) vivent uniquement dans la section
-    // "Attente" du plan, pas ici : tant qu'elles ne sont pas lancées, ce ne sont pas
-    // encore des affaires "en cours"
+    // les affaires en attente ou en usinage vivent uniquement dans leurs sections dédiées
+    // du plan, pas ici : tant qu'elles ne sont pas lancées, ce ne sont pas encore des
+    // affaires "en cours"
     var sorted = state.affaires.filter(function(a){
-      return !a.archivee && ZONE_TYPE[a.zone] !== "attente";
+      return !a.archivee && !estPreLancement(ZONE_TYPE[a.zone]);
     }).sort(function(a, b){
       var ia = orderIndex[a.zone] !== undefined ? orderIndex[a.zone] : 999;
       var ib = orderIndex[b.zone] !== undefined ? orderIndex[b.zone] : 999;
@@ -1152,7 +1192,7 @@
     // un câbleur par zone qu'il tient, même sans affaire dessus pour l'instant
     var parCableur = {};
     ALL_ZONES.forEach(function(zone){
-      if(ZONE_TYPE[zone] === "attente") return;
+      if(estPreLancement(ZONE_TYPE[zone])) return;
       var nom = state.cableurs[zone];
       if(!nom) return;
       if(!parCableur[nom]) parCableur[nom] = [];
@@ -1237,8 +1277,8 @@
       }
     }
 
-    var libelleCableur = type === "attente"
-      ? "En attente de lancement"
+    var libelleCableur = type === "attente" ? "En attente de lancement"
+      : type === "usinage" ? "En usinage, pas encore lancée"
       : (cableur ? "Câbleur : " + cableur : "Non affecté");
 
     var tile = el("button", {
@@ -1280,7 +1320,10 @@
     if(!code){ drawer.setAttribute("aria-hidden","true"); return; }
 
     var type = ZONE_TYPE[code];
-    var libelleType = type === "prep" ? "Préparation" : (type === "test" ? "Test" : "Attente");
+    var libelleType = type === "prep" ? "Préparation"
+      : type === "test" ? "Test"
+      : type === "usinage" ? "Usinage"
+      : "Attente";
     var head = el("div", { class:"drawer-head" }, [
       el("div", {}, [
         el("div", { class:"code-badge mono", text: code }),
@@ -1295,6 +1338,11 @@
       cableurField = el("p", {
         class:"modal-hint",
         text:"Zone d'attente : le matériel reçu patiente ici, sans câbleur ni chargé d'affaires assignés, jusqu'à ce que l'affaire soit lancée et déplacée vers une vraie zone."
+      });
+    } else if(type === "usinage"){
+      cableurField = el("p", {
+        class:"modal-hint",
+        text:"Zone d'usinage : la base de l'armoire est ici pour être usinée, avant même que les pièces soient toutes reçues. Sans câbleur ni chargé d'affaires assignés tant que l'affaire n'est pas lancée."
       });
     } else {
       cableurField = el("div", {}, [
