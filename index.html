@@ -635,7 +635,7 @@
     volontaire du 27/07). La lecture photo ne fonctionne que sur le vrai site déployé, pas dans un aperçu
     Claude. Les données restent uniquement dans ce navigateur pour l'instant (rien n'est partagé ni
     sauvegardé ailleurs).
-    <p class="version-tag mono">Version v10 · 27/07/2026 · Lecture photo par colonnes (Désignation / Qté)</p>
+    <p class="version-tag mono">Version v11 · 27/07/2026 · Alias élargis (casse/pluriel), lecture jusqu'en bas de page</p>
   </footer>
 </div>
 
@@ -1833,22 +1833,28 @@
   // tombe sous ces deux colonnes. Si l'en-tête n'est pas trouvé, on ne devine pas : on le
   // dit et on laisse la saisie manuelle prendre le relais. Alias à enrichir au fur et à
   // mesure que de vrais documents BCIG sont testés.
+  // listes larges volontairement (majuscule/accents/pluriel déjà neutralisés par
+  // normaliserEntete) : mieux vaut un alias de trop qu'une colonne jamais reconnue
   var CONFIG_COLONNES = {
     commande: {
-      article: ["designation", "design", "article", "produit", "libelle"],
-      quantite: ["qtecommandee", "quantitecommandee", "qtecommande", "qte", "qty", "quantite"]
+      article: ["designation", "design", "desig", "article", "produit", "libelle", "denomination", "nom"],
+      quantite: ["qtecommandee", "quantitecommandee", "qtecommande", "qtecde", "qte", "qty", "quantite", "nombre", "nb"]
     },
     bl: {
-      article: ["designation", "design", "article", "produit", "libelle"],
-      quantite: ["qtelivree", "quantitelivree", "qtelivre", "qte", "qty", "quantite"]
+      article: ["designation", "design", "desig", "article", "produit", "libelle", "denomination", "nom"],
+      quantite: ["qtelivree", "quantitelivree", "qtelivre", "qte", "qty", "quantite", "nombre", "nb"]
     }
   };
 
+  // majuscule/minuscule et accents neutralis\u00e9s ici ; le pluriel aussi (un simple "s" final
+  // retir\u00e9), pour ne pas avoir \u00e0 lister chaque variante \u00e0 la main dans CONFIG_COLONNES
   function normaliserEntete(texte){
-    return (texte || "")
+    var t = (texte || "")
       .toLowerCase()
       .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
       .replace(/[^a-z]/g, "");
+    if(t.length > 3 && t.charAt(t.length - 1) === "s"){ t = t.slice(0, -1); }
+    return t;
   }
 
   function trouverEnTetes(mots, cible){
@@ -1888,6 +1894,8 @@
     var xArticleFin = entetes.quantite.bbox.x0;
     var xQuantiteFin = entetes.quantite.bbox.x1 + 120; // marge : les chiffres débordent souvent à droite de l'en-tête
 
+    // règle générale : tout ce qui est sous l'en-tête est une ligne candidate, sans limite
+    // basse ; on lit jusqu'au bas de la page, pas seulement les premières lignes du tableau
     var motsCorps = mots.filter(function(m){ return m.bbox.y0 > yEntete + 5; });
 
     // regroupe les mots du corps en lignes par proximité verticale (tolérance à affiner
