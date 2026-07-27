@@ -120,13 +120,17 @@
     background:var(--surface); color:var(--ink); font-size:.88rem;
   }
   .lookup-result{
-    display:flex; align-items:center; gap:10px; padding:12px 16px; border-radius:10px;
+    display:flex; flex-wrap:wrap; align-items:center; gap:10px; padding:12px 16px; border-radius:10px;
     margin-bottom:26px; font-size:.92rem; font-weight:600; box-shadow:var(--shadow);
     border:1px solid transparent;
   }
   .lookup-result .lookup-icon{ font-size:1.1rem; }
   .lookup-result .lookup-sub{
     display:block; font-size:.76rem; font-weight:400; color:inherit; opacity:.85; margin-top:2px;
+  }
+  .lookup-reste-livrer{
+    flex-basis:100%; font-size:.76rem; font-weight:600; padding-top:8px; margin-top:2px;
+    border-top:1px dashed currentColor; opacity:.9;
   }
   /* couleur de texte volontairement --ink (pas les tokens -ink de type, calibrés pour
      un aplat SOLID, pas pour ces fonds -surface qui s'assombrissent en thème sombre) */
@@ -301,6 +305,7 @@
     transition:opacity .18s ease; z-index:20;
   }
   #addScrim{ z-index:30; }
+  #commandeScrim{ z-index:30; }
   #confirmScrim{ z-index:40; }
   #confirmModal{ z-index:41; }
   .scrim.open{ opacity:1; pointer-events:auto; }
@@ -474,6 +479,37 @@
   .confirm-modal .modal-body{ padding:20px; gap:16px; }
   .confirm-modal p{ margin:0; font-size:.9rem; line-height:1.45; }
   .confirm-actions{ display:flex; justify-content:flex-end; gap:8px; }
+
+  /* commande / BL / reste à livrer, au niveau de l'affaire (pas de l'armoire, simplification volontaire) */
+  .commande-modal{ width:min(460px, 92vw); }
+  .commande-section{ display:flex; flex-direction:column; gap:8px; }
+  .commande-section .row{ display:flex; gap:6px; }
+  .commande-section .row input[type="text"]{
+    flex:1; padding:7px 9px; border-radius:6px; border:1px solid var(--line); background:var(--surface-2);
+    color:var(--ink); font-size:.82rem;
+  }
+  .qte-input{
+    width:64px; flex:none; padding:7px 9px; border-radius:6px; border:1px solid var(--line);
+    background:var(--surface-2); color:var(--ink); font-size:.82rem;
+  }
+  .commande-lignes{ display:flex; flex-direction:column; gap:5px; max-height:160px; overflow-y:auto; }
+  .ligne-article{
+    display:flex; align-items:center; gap:8px; padding:6px 8px; border-radius:6px;
+    background:var(--surface-2); border:1px solid var(--line); font-size:.82rem;
+  }
+  .ligne-article span:first-child{ flex:1; }
+  .ligne-reste{
+    display:flex; align-items:center; justify-content:space-between; gap:8px; padding:6px 8px;
+    border-radius:6px; font-size:.82rem; border:1px solid transparent;
+  }
+  .ligne-reste.reste-complet{ background:color-mix(in srgb, var(--usinage) 16%, var(--surface)); color:var(--usinage); }
+  .ligne-reste.reste-attente{ background:color-mix(in srgb, var(--warn) 16%, var(--surface)); color:var(--warn); }
+  .ligne-reste.reste-anomalie{ background:color-mix(in srgb, var(--danger) 16%, var(--surface)); color:var(--danger); }
+  .btn-commande{
+    border:1px solid var(--line); background:var(--surface); border-radius:6px; padding:5px 8px;
+    font-size:.72rem; color:var(--muted); flex:none;
+  }
+  .btn-commande:hover{ color:var(--accent); border-color:var(--accent); }
 </style>
 
 </head>
@@ -565,9 +601,12 @@
     l'Usinage n'ont pas de détail d'emplacement (une seule zone chacun). Chaque section du plan et de la liste
     se replie/déplie indépendamment. Les numéros d'affaires (format A2600 + 3 chiffres), leur nombre par
     zone, les 6 chargés d'affaires et les 6 câbleurs affectés sont inventés au hasard pour le test, pas recopiés
-    du plan papier. Les données restent uniquement dans ce navigateur pour l'instant (rien n'est partagé ni
-    sauvegardé ailleurs).
-    <p class="version-tag mono">Version v7 · 27/07/2026 · Zone Usinage (base de l'armoire, avant lancement)</p>
+    du plan papier. Bouton « Commande » sur chaque affaire (dans sa zone) : bon de commande recopié à la main
+    (PDF fournisseur pour l'instant, pas de lecture automatique), BL reçus ligne à ligne, reste à livrer calculé
+    tout seul et rappelé dans la recherche du haut. Convergence commande/BL faite au niveau de l'affaire entière,
+    pas armoire par armoire (simplification volontaire du 27/07). Les données restent uniquement dans ce
+    navigateur pour l'instant (rien n'est partagé ni sauvegardé ailleurs).
+    <p class="version-tag mono">Version v8 · 27/07/2026 · Commande / BL / reste à livrer, par affaire</p>
   </footer>
 </div>
 
@@ -606,6 +645,40 @@
     <div class="confirm-actions">
       <button type="button" class="btn-ghost" id="confirmCancel">Annuler</button>
       <button type="button" class="btn-primary" id="confirmOk">Confirmer</button>
+    </div>
+  </div>
+</div>
+
+<div class="scrim" id="commandeScrim"></div>
+<div class="modal commande-modal" id="commandeModal" aria-hidden="true" role="dialog" aria-label="Commande et bons de livraison">
+  <div class="modal-head">
+    <h3 id="commandeTitre">Commande &amp; BL</h3>
+    <button type="button" class="drawer-close" id="commandeClose" aria-label="Fermer">×</button>
+  </div>
+  <div class="modal-body">
+    <div class="commande-section">
+      <label class="field-label">Bon de commande (attendu, PDF fournisseur recopié à la main pour l'instant)</label>
+      <div id="commandeLignes" class="commande-lignes"></div>
+      <div class="row">
+        <input type="text" id="commandeArticle" placeholder="Article" />
+        <input type="number" id="commandeQte" placeholder="Qté" min="1" class="qte-input" />
+        <button type="button" class="btn-primary" id="commandeAjouter">+ Ligne</button>
+      </div>
+    </div>
+
+    <div class="commande-section">
+      <label class="field-label">Reste à livrer (calculé automatiquement)</label>
+      <div id="resteLignes" class="commande-lignes"></div>
+    </div>
+
+    <div class="commande-section">
+      <label class="field-label">BL reçus (une ligne par article reçu, un BL peut avoir plusieurs lignes)</label>
+      <div id="blListe" class="commande-lignes"></div>
+      <div class="row">
+        <input type="text" id="blArticle" placeholder="Article" />
+        <input type="number" id="blQte" placeholder="Qté" min="1" class="qte-input" />
+        <button type="button" class="btn-primary" id="blAjouterLigne">+ Ligne reçue</button>
+      </div>
     </div>
   </div>
 </div>
@@ -738,7 +811,7 @@
       banniere.appendChild(el("span", { class:"lookup-icon", text:"?" }));
       banniere.appendChild(el("span", {}, [
         document.createTextNode("Aucune affaire connue sous « " + requete + " »."),
-        el("span", { class:"lookup-sub", text:"Nouvelle réception : stocke le colis au Palettier ou en Module, puis ajoute l'affaire." })
+        el("span", { class:"lookup-sub", text:"Nouvelle réception : stocke le colis au Palettier, en Modula ou en Usinage, puis ajoute l'affaire." })
       ]));
       return;
     }
@@ -776,6 +849,14 @@
         document.createTextNode(a.numero + " est en zone " + a.zone + "."),
         el("span", { class:"lookup-sub", text: cableur ? "Câbleur : " + cableur : "Câbleur non renseigné pour cette zone" })
       ]));
+    }
+
+    // reste à livrer, si une commande a été saisie pour cette affaire : la réception
+    // voit tout de suite si le colis qui arrive complète ou non ce qui était attendu
+    var enAttenteDeLivraison = resteALivrer(a).filter(function(l){ return l.reste > 0; });
+    if(enAttenteDeLivraison.length > 0){
+      var resume = enAttenteDeLivraison.map(function(l){ return l.article + " (" + l.reste + ")"; }).join(", ");
+      banniere.appendChild(el("span", { class:"lookup-reste-livrer", text:"Reste à livrer : " + resume }));
     }
   }
 
@@ -1052,6 +1133,41 @@
     if(jours >= 8) return "age-danger";
     if(jours >= 4) return "age-warn";
     return "age-normal";
+  }
+
+  function trouverAffaireParId(id){
+    return state.affaires.find(function(a){ return a.id === id; }) || null;
+  }
+
+  // convergence commande / BL au niveau de l'AFFAIRE (pas de l'armoire, simplification
+  // volontaire du 27/07) : le reste à livrer se calcule article par article, en sommant
+  // toutes les lignes reçues (tous BL confondus) et en les comparant à la commande.
+  // Un article reçu mais jamais commandé est signalé, jamais caché (même logique que les
+  // anomalies déjà gérées ailleurs dans l'outil).
+  function resteALivrer(affaire){
+    var commandeParArticle = {};
+    (affaire.commande || []).forEach(function(l){
+      commandeParArticle[l.article] = (commandeParArticle[l.article] || 0) + l.quantite;
+    });
+    var recuParArticle = {};
+    (affaire.receptionsLignes || []).forEach(function(l){
+      recuParArticle[l.article] = (recuParArticle[l.article] || 0) + l.quantite;
+    });
+
+    var articles = Object.keys(commandeParArticle);
+    Object.keys(recuParArticle).forEach(function(a){
+      if(articles.indexOf(a) === -1) articles.push(a);
+    });
+
+    return articles.map(function(article){
+      var qCommande = commandeParArticle[article] || 0;
+      var qRecu = recuParArticle[article] || 0;
+      return {
+        article: article, commande: qCommande, recu: qRecu,
+        reste: Math.max(0, qCommande - qRecu),
+        horsCommande: qCommande === 0
+      };
+    });
   }
 
   // repère une saisie en double (faute de frappe qui recrée une affaire déjà suivie ailleurs)
@@ -1398,6 +1514,8 @@
         a.zone = newZone; a.zoneDepuisLe = Date.now();
         saveState(); renderBoard(); renderStats(); renderSidebar(); renderDrawer(code);
       });
+      var commandeBtn = el("button", { type:"button", class:"icon-btn", text:"Commande" });
+      commandeBtn.addEventListener("click", function(){ ouvrirCommandeModal(a.id); });
       var delBtn = el("button", { type:"button", class:"icon-btn danger", text:"Clôturer" });
       delBtn.addEventListener("click", function(){
         demanderConfirmation("Clôturer l'affaire " + a.numero + " ? Elle sort du plan mais reste dans l'historique.", function(){
@@ -1407,6 +1525,7 @@
         });
       });
       actions.appendChild(move);
+      actions.appendChild(commandeBtn);
       actions.appendChild(delBtn);
 
       var row = el("div", { class:"affaire-row" }, [ top, actions ]);
@@ -1519,6 +1638,88 @@
     document.getElementById("addScrim").classList.remove("open");
   }
 
+  var commandeAffaireId = null;
+
+  function ouvrirCommandeModal(affaireId){
+    closeDrawer();
+    commandeAffaireId = affaireId;
+    document.getElementById("commandeArticle").value = "";
+    document.getElementById("commandeQte").value = "";
+    document.getElementById("blArticle").value = "";
+    document.getElementById("blQte").value = "";
+    renderCommandeModal();
+    document.getElementById("commandeModal").classList.add("open");
+    document.getElementById("commandeModal").setAttribute("aria-hidden", "false");
+    document.getElementById("commandeScrim").classList.add("open");
+  }
+  function closeCommandeModal(){
+    commandeAffaireId = null;
+    document.getElementById("commandeModal").classList.remove("open");
+    document.getElementById("commandeModal").setAttribute("aria-hidden", "true");
+    document.getElementById("commandeScrim").classList.remove("open");
+  }
+
+  function renderCommandeModal(){
+    var affaire = trouverAffaireParId(commandeAffaireId);
+    if(!affaire) return;
+    document.getElementById("commandeTitre").textContent = "Commande & BL — " + affaire.numero;
+
+    var commandeWrap = document.getElementById("commandeLignes");
+    commandeWrap.innerHTML = "";
+    var commande = affaire.commande || [];
+    if(commande.length === 0){
+      commandeWrap.appendChild(el("div", { class:"no-affaires", text:"Aucune ligne de commande pour l'instant." }));
+    }
+    commande.forEach(function(l){
+      var delBtn = el("button", { type:"button", class:"btn-commande", text:"Retirer" });
+      delBtn.addEventListener("click", function(){
+        affaire.commande = affaire.commande.filter(function(x){ return x.id !== l.id; });
+        saveState(); renderCommandeModal();
+      });
+      commandeWrap.appendChild(el("div", { class:"ligne-article" }, [
+        el("span", { text: l.article }),
+        el("span", { class:"mono", text: "× " + l.quantite }),
+        delBtn
+      ]));
+    });
+
+    var blWrap = document.getElementById("blListe");
+    blWrap.innerHTML = "";
+    var recues = (affaire.receptionsLignes || []).slice().sort(function(a, b){ return b.ajouteLe - a.ajouteLe; });
+    if(recues.length === 0){
+      blWrap.appendChild(el("div", { class:"no-affaires", text:"Aucun BL enregistré pour l'instant." }));
+    }
+    recues.forEach(function(l){
+      var delBtn = el("button", { type:"button", class:"btn-commande", text:"Retirer" });
+      delBtn.addEventListener("click", function(){
+        affaire.receptionsLignes = affaire.receptionsLignes.filter(function(x){ return x.id !== l.id; });
+        saveState(); renderCommandeModal();
+      });
+      blWrap.appendChild(el("div", { class:"ligne-article" }, [
+        el("span", { text: l.article }),
+        el("span", { class:"mono", text: "× " + l.quantite }),
+        delBtn
+      ]));
+    });
+
+    var resteWrap = document.getElementById("resteLignes");
+    resteWrap.innerHTML = "";
+    var lignesReste = resteALivrer(affaire);
+    if(lignesReste.length === 0){
+      resteWrap.appendChild(el("div", { class:"no-affaires", text:"Rien à comparer pour l'instant." }));
+    }
+    lignesReste.forEach(function(l){
+      var classe = l.horsCommande ? "reste-anomalie" : (l.reste > 0 ? "reste-attente" : "reste-complet");
+      var texte = l.horsCommande
+        ? "reçu " + l.recu + " (non commandé)"
+        : (l.reste > 0 ? l.recu + " / " + l.commande + " — reste " + l.reste : l.recu + " / " + l.commande + " — complet");
+      resteWrap.appendChild(el("div", { class:"ligne-reste " + classe }, [
+        el("span", { text: l.article }),
+        el("span", { class:"mono", text: texte })
+      ]));
+    });
+  }
+
   document.getElementById("newAffaireBtn").addEventListener("click", openAddModal);
   document.getElementById("addModalClose").addEventListener("click", closeAddModal);
   document.getElementById("addScrim").addEventListener("click", closeAddModal);
@@ -1538,8 +1739,39 @@
     ajouterAffaire(numero, charge, zone, closeAddModal);
   });
 
+  document.getElementById("commandeClose").addEventListener("click", closeCommandeModal);
+  document.getElementById("commandeScrim").addEventListener("click", closeCommandeModal);
+
+  document.getElementById("commandeAjouter").addEventListener("click", function(){
+    var affaire = trouverAffaireParId(commandeAffaireId);
+    if(!affaire) return;
+    var article = document.getElementById("commandeArticle").value.trim();
+    var qte = parseInt(document.getElementById("commandeQte").value, 10);
+    if(!article || !qte || qte <= 0) return;
+    if(!affaire.commande) affaire.commande = [];
+    affaire.commande.push({ id: uid(), article: article, quantite: qte, ajouteLe: Date.now() });
+    saveState();
+    document.getElementById("commandeArticle").value = "";
+    document.getElementById("commandeQte").value = "";
+    renderCommandeModal();
+  });
+
+  document.getElementById("blAjouterLigne").addEventListener("click", function(){
+    var affaire = trouverAffaireParId(commandeAffaireId);
+    if(!affaire) return;
+    var article = document.getElementById("blArticle").value.trim();
+    var qte = parseInt(document.getElementById("blQte").value, 10);
+    if(!article || !qte || qte <= 0) return;
+    if(!affaire.receptionsLignes) affaire.receptionsLignes = [];
+    affaire.receptionsLignes.push({ id: uid(), article: article, quantite: qte, ajouteLe: Date.now() });
+    saveState();
+    document.getElementById("blArticle").value = "";
+    document.getElementById("blQte").value = "";
+    renderCommandeModal();
+  });
+
   document.addEventListener("keydown", function(e){
-    if(e.key === "Escape"){ closeDrawer(); closeAddModal(); fermerConfirmation(true); }
+    if(e.key === "Escape"){ closeDrawer(); closeAddModal(); closeCommandeModal(); fermerConfirmation(true); }
   });
 
   document.getElementById("search").addEventListener("input", function(e){
