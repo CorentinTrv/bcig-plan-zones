@@ -227,10 +227,12 @@
 
   /* disposition "plan usine" : reprend la géométrie relevée sur la photo.
      Grille générale à 2 colonnes : gauche = E (au-dessus) puis A/B (dessous) puis T/I (dessous) ;
-     droite = C, décalée pour démarrer au même niveau que A/B, comme sur le papier. */
+     droite = C, décalée pour démarrer au même niveau que A/B, comme sur le papier.
+     Allée C retirée pour le moment => une seule colonne ; le style de .board-c-col
+     reste défini, prêt à resservir tel quel dès qu'elle revient. */
   .factory-board{
     display:grid;
-    grid-template-columns: minmax(260px, 420px) auto;
+    grid-template-columns: minmax(260px, 640px);
     column-gap: 40px; row-gap: 22px;
     align-items:start;
     flex:1; min-width:0;
@@ -517,7 +519,7 @@
           <button type="button" class="sidebar-tab active" id="tabAffaires">Par affaire</button>
           <button type="button" class="sidebar-tab" id="tabCableurs">Charge par câbleur</button>
         </div>
-        <p class="sidebar-hint" id="sidebarHint">Attente d'abord, puis préparation, zones de test à la fin.</p>
+        <p class="sidebar-hint" id="sidebarHint">Affaires lancées uniquement ; celles en attente sont dans la section Attente, en haut du plan.</p>
         <div class="sidebar-list" id="sidebarList"></div>
       </details>
       <details class="sidebar-historique">
@@ -535,10 +537,8 @@
         <summary class="section-toggle"><h2 id="boardTestTitle">Zones de test</h2></summary>
         <div id="boardTest"></div>
       </details>
-      <details class="board-c-col" open>
-        <summary class="section-toggle"><h2>Allée C</h2></summary>
-        <div id="boardC"></div>
-      </details>
+      <!-- Allée C retirée pour le moment (demande du 27/07) ; renderBoard() gère
+           l'absence de #boardC sans erreur, il suffit de remettre ce bloc pour la rétablir -->
       <details class="board-ab-col" open>
         <summary class="section-toggle"><h2>Allées A · B</h2></summary>
         <div id="boardAB"></div>
@@ -566,7 +566,7 @@
     zone, les 6 chargés d'affaires et les 6 câbleurs affectés sont inventés au hasard pour le test, pas recopiés
     du plan papier. Les données restent uniquement dans ce navigateur pour l'instant (rien n'est partagé ni
     sauvegardé ailleurs).
-    <p class="version-tag mono">Version v3 · 27/07/2026 · Palettier/Modula + sections repliables</p>
+    <p class="version-tag mono">Version v4 · 27/07/2026 · Affaires en cours sans l'attente, Allée C retirée</p>
   </footer>
 </div>
 
@@ -815,7 +815,10 @@
   }
 
   function renderStats(){
-    document.getElementById("statAffaires").textContent = state.affaires.filter(function(a){ return !a.archivee; }).length;
+    // "affaires en cours" = lancées (hors attente), cohérent avec la liste de gauche
+    document.getElementById("statAffaires").textContent = state.affaires.filter(function(a){
+      return !a.archivee && ZONE_TYPE[a.zone] !== "attente";
+    }).length;
 
     var occupied = new Set(state.affaires.filter(function(a){ return !a.archivee; }).map(function(a){ return a.zone; }));
     document.getElementById("statZones").textContent = occupied.size + " / " + ALL_ZONES.length;
@@ -967,9 +970,12 @@
     abWrap.innerHTML = "";
     BOARD.ab.forEach(function(quad){ abWrap.appendChild(renderQuadBox(quad)); });
 
+    // Allée C retirée pour le moment (voir commentaire HTML) : élément absent, rien à faire
     var cWrap = document.getElementById("boardC");
-    cWrap.innerHTML = "";
-    chunk(BOARD.c, 2).forEach(function(pair){ cWrap.appendChild(renderPairBox(pair)); });
+    if(cWrap){
+      cWrap.innerHTML = "";
+      chunk(BOARD.c, 2).forEach(function(pair){ cWrap.appendChild(renderPairBox(pair)); });
+    }
 
     var bottomWrap = document.getElementById("boardBottom");
     bottomWrap.innerHTML = "";
@@ -1077,7 +1083,7 @@
       renderSidebarParCableur();
     } else {
       titre.textContent = "Affaires en cours";
-      hint.textContent = "Attente d'abord, puis préparation, zones de test à la fin.";
+      hint.textContent = "Affaires lancées uniquement ; celles en attente sont dans la section Attente, en haut du plan.";
       renderSidebarParAffaire();
     }
     renderHistorique();
@@ -1089,7 +1095,12 @@
 
     var orderIndex = {};
     SIDEBAR_ORDER.forEach(function(code, i){ orderIndex[code] = i; });
-    var sorted = state.affaires.filter(function(a){ return !a.archivee; }).sort(function(a, b){
+    // les affaires en attente (Palettier/Modula) vivent uniquement dans la section
+    // "Attente" du plan, pas ici : tant qu'elles ne sont pas lancées, ce ne sont pas
+    // encore des affaires "en cours"
+    var sorted = state.affaires.filter(function(a){
+      return !a.archivee && ZONE_TYPE[a.zone] !== "attente";
+    }).sort(function(a, b){
       var ia = orderIndex[a.zone] !== undefined ? orderIndex[a.zone] : 999;
       var ib = orderIndex[b.zone] !== undefined ? orderIndex[b.zone] : 999;
       if(ia !== ib) return ia - ib;
