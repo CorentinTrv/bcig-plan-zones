@@ -372,6 +372,16 @@
   .icon-btn.commande-statut-complet{ background:color-mix(in srgb, var(--usinage) 16%, var(--surface)); color:var(--usinage); border-color:var(--usinage); }
   .no-affaires{ font-size:.82rem; color:var(--muted); font-style:italic; padding:6px 2px; }
 
+  .cableur-ref{
+    display:flex; flex-direction:column; gap:6px; border-top:1px dashed var(--line); padding-top:12px;
+  }
+  .cableur-ref-row{
+    display:flex; align-items:center; justify-content:space-between; gap:8px;
+    border:1px solid var(--line); border-radius:7px; padding:7px 10px; background:var(--surface-2);
+    font-family:inherit; text-align:left; cursor:pointer;
+  }
+  .cableur-ref-row:hover{ border-color:var(--accent); }
+
   .add-form{
     border-top:1px dashed var(--line); padding-top:14px; display:flex; flex-direction:column; gap:8px;
   }
@@ -535,9 +545,9 @@
     padding:8px; background:var(--surface-2); border-radius:6px; font-size:.7rem;
   }
 </style>
-
 </head>
 <body>
+
 <div class="page">
   <header class="top">
     <div class="brand">
@@ -635,7 +645,7 @@
     volontaire du 27/07). La lecture photo ne fonctionne que sur le vrai site déployé, pas dans un aperçu
     Claude. Les données restent uniquement dans ce navigateur pour l'instant (rien n'est partagé ni
     sauvegardé ailleurs).
-    <p class="version-tag mono">Version v11 · 27/07/2026 · Alias élargis (casse/pluriel), lecture jusqu'en bas de page</p>
+    <p class="version-tag mono">Version v12 · 27/07/2026 · Retour Commande, lecture OCR renforcée, vue affaire isolée</p>
   </footer>
 </div>
 
@@ -681,6 +691,7 @@
 <div class="scrim" id="commandeScrim"></div>
 <div class="modal commande-modal" id="commandeModal" aria-hidden="true" role="dialog" aria-label="Commande et bons de livraison">
   <div class="modal-head">
+    <button type="button" class="btn-ghost retour-btn" id="commandeRetour">◀ Retour à la zone</button>
     <h3 id="commandeTitre">Commande &amp; BL</h3>
     <button type="button" class="drawer-close" id="commandeClose" aria-label="Fermer">×</button>
   </div>
@@ -933,6 +944,7 @@
 
   var state = loadState();
   var openZone = null;
+  var drawerFocusAffaireId = null; // si posé, le tiroir n'affiche QUE cette affaire (clic depuis la liste)
   var filterText = "";
   var sidebarView = "affaires";
   var attenteDetail = null; // null | "palettier" | "modula"
@@ -1358,7 +1370,7 @@
         row.appendChild(el("span", { class:"warn-badge", title: lignesManque.join("\n"), text:"!" }));
       }
 
-      row.addEventListener("click", function(){ openDrawer(a.zone); });
+      row.addEventListener("click", function(){ openDrawer(a.zone, a.id); });
       list.appendChild(row);
     });
   }
@@ -1496,7 +1508,20 @@
     return select;
   }
 
-  function renderDrawer(code){
+  function affairesMemeCableur(zoneCode, affaireExclueId){
+    var nomCableur = state.cableurs[zoneCode];
+    if(!nomCableur) return [];
+    var resultat = [];
+    ALL_ZONES.forEach(function(z){
+      if(state.cableurs[z] !== nomCableur) return;
+      affairesInZone(z).forEach(function(a){
+        if(a.id !== affaireExclueId) resultat.push(a);
+      });
+    });
+    return resultat;
+  }
+
+  function renderDrawer(code, affaireFocusId){
     var drawer = document.getElementById("drawer");
     drawer.innerHTML = "";
     if(!code){ drawer.setAttribute("aria-hidden","true"); return; }
@@ -1553,11 +1578,14 @@
       cableurField.appendChild(cableurInput);
     }
 
-    var listWrap = el("div", {}, [ el("label", { class:"field-label", text:"Affaires présentes" }) ]);
+    var affsZone = affairesInZone(code);
+    var affs = affaireFocusId ? affsZone.filter(function(a){ return a.id === affaireFocusId; }) : affsZone;
+    var listWrap = el("div", {}, [
+      el("label", { class:"field-label", text: affaireFocusId ? "Affaire sélectionnée" : "Affaires présentes" })
+    ]);
     var list = el("div", { class:"affaires-list" });
-    var affs = affairesInZone(code);
     if(affs.length === 0){
-      list.appendChild(el("div", { class:"no-affaires", text:"Aucune affaire dans cette zone." }));
+      list.appendChild(el("div", { class:"no-affaires", text: affaireFocusId ? "Affaire introuvable (clôturée entre-temps ?)." : "Aucune affaire dans cette zone." }));
     }
     affs.forEach(function(a){
       var top = el("div", { class:"top-line" }, [
@@ -1578,7 +1606,11 @@
       var actions = el("div", { class:"row-actions" });
       var move = zoneSelect(a.zone, function(newZone){
         a.zone = newZone; a.zoneDepuisLe = Date.now();
-        saveState(); renderBoard(); renderStats(); renderSidebar(); renderDrawer(code);
+        saveState(); renderBoard(); renderStats(); renderSidebar();
+        // en vue focalisée, on suit l'affaire dans sa nouvelle zone plutôt que de la
+        // laisser disparaître du tiroir resté sur l'ancienne
+        if(affaireFocusId){ openZone = newZone; renderDrawer(newZone, affaireFocusId); }
+        else { renderDrawer(code); }
       });
       var commandeBtn = el("button", {
         type:"button", class:"icon-btn commande-statut-" + statutCommande(a), text:"Commande"
@@ -1589,7 +1621,7 @@
         demanderConfirmation("Clôturer l'affaire " + a.numero + " ? Elle sort du plan mais reste dans l'historique.", function(){
           a.archivee = true;
           a.archiveeLe = Date.now();
-          saveState(); renderBoard(); renderStats(); renderSidebar(); renderDrawer(code);
+          saveState(); renderBoard(); renderStats(); renderSidebar(); renderDrawer(code, affaireFocusId);
         });
       });
       actions.appendChild(move);
@@ -1600,6 +1632,27 @@
       list.appendChild(row);
     });
     listWrap.appendChild(list);
+
+    // vue focalisée : indique les autres affaires (dans d'autres zones) tenues par le
+    // même câbleur, pour naviguer entre elles sans repasser par la liste complète
+    var cableurRefWrap = null;
+    if(affaireFocusId){
+      var autresAffaires = affairesMemeCableur(code, affaireFocusId);
+      if(autresAffaires.length > 0){
+        cableurRefWrap = el("div", { class:"cableur-ref" }, [
+          el("label", { class:"field-label", text:"Également associée au câbleur " + state.cableurs[code] })
+        ]);
+        autresAffaires.forEach(function(a2){
+          var type2 = ZONE_TYPE[a2.zone] || "prep";
+          var ligneRef = el("button", { type:"button", class:"cableur-ref-row" }, [
+            el("span", { class:"mono", text: a2.numero }),
+            el("span", { class:"sidebar-zone " + type2, text: a2.zone })
+          ]);
+          ligneRef.addEventListener("click", function(){ openDrawer(a2.zone, a2.id); });
+          cableurRefWrap.appendChild(ligneRef);
+        });
+      }
+    }
 
     var addForm = el("div", { class:"add-form" }, [
       el("label", { class:"field-label", text:"Ajouter une affaire dans " + code })
@@ -1615,27 +1668,29 @@
     addBtn.addEventListener("click", function(){
       var numero = numInput.value.trim();
       if(!numero){ numInput.focus(); return; }
-      ajouterAffaire(numero, chargeInput2.value.trim(), code, function(){ renderDrawer(code); });
+      ajouterAffaire(numero, chargeInput2.value.trim(), code, function(){ renderDrawer(code, affaireFocusId); });
     });
     addForm.appendChild(row1);
     addForm.appendChild(addBtn);
 
-    var body = el("div", { class:"drawer-body" }, [ cableurField, listWrap, addForm ]);
+    var body = el("div", { class:"drawer-body" }, [ cableurField, listWrap, cableurRefWrap, addForm ]);
 
     drawer.appendChild(head);
     drawer.appendChild(body);
     drawer.setAttribute("aria-hidden","false");
   }
 
-  function openDrawer(code){
+  function openDrawer(code, affaireFocusId){
     closeAddModal();
     openZone = code;
-    renderDrawer(code);
+    drawerFocusAffaireId = affaireFocusId || null;
+    renderDrawer(code, drawerFocusAffaireId);
     document.getElementById("drawer").classList.add("open");
     document.getElementById("scrim").classList.add("open");
   }
   function closeDrawer(){
     openZone = null;
+    drawerFocusAffaireId = null;
     document.getElementById("drawer").classList.remove("open");
     document.getElementById("scrim").classList.remove("open");
   }
@@ -1709,7 +1764,8 @@
   var commandeAffaireId = null;
 
   function ouvrirCommandeModal(affaireId){
-    closeDrawer();
+    // ne PAS fermer le tiroir de la zone : on veut y revenir en fermant cette fenêtre
+    // (bug du 27/07 : fermer le tiroir ici renvoyait à l'accueil au lieu de la zone)
     commandeAffaireId = affaireId;
     document.getElementById("commandeArticle").value = "";
     document.getElementById("commandeQte").value = "";
@@ -1892,15 +1948,20 @@
     var yEntete = Math.min(entetes.article.bbox.y1, entetes.quantite.bbox.y1);
     var xArticleDebut = entetes.article.bbox.x0;
     var xArticleFin = entetes.quantite.bbox.x0;
-    var xQuantiteFin = entetes.quantite.bbox.x1 + 120; // marge : les chiffres débordent souvent à droite de l'en-tête
+    // marges généreuses (les chiffres et le texte débordent souvent un peu de leur en-tête)
+    var xQuantiteFin = entetes.quantite.bbox.x1 + 250;
+    var margeGaucheArticle = 40;
 
     // règle générale : tout ce qui est sous l'en-tête est une ligne candidate, sans limite
     // basse ; on lit jusqu'au bas de la page, pas seulement les premières lignes du tableau
     var motsCorps = mots.filter(function(m){ return m.bbox.y0 > yEntete + 5; });
 
-    // regroupe les mots du corps en lignes par proximité verticale (tolérance à affiner
-    // une fois testée sur un vrai document, selon l'interligne réel du tableau)
-    var TOLERANCE_Y = 12;
+    // tolérance ADAPTÉE à la taille réelle du texte de l'en-tête (pas une valeur fixe en
+    // pixels qui ne veut rien dire d'une photo à l'autre selon le zoom/la résolution) :
+    // c'est ce qui a fait échouer la 1ère version sur le premier test réel du 27/07
+    var hauteurEntete = entetes.article.bbox.y1 - entetes.article.bbox.y0;
+    var TOLERANCE_Y = Math.max(10, Math.round(hauteurEntete * 0.9));
+
     var lignesTableau = [];
     motsCorps.forEach(function(m){
       var yCentre = (m.bbox.y0 + m.bbox.y1) / 2;
@@ -1914,12 +1975,12 @@
     lignesTableau.forEach(function(ligne){
       var motsArticle = ligne.mots.filter(function(m){
         var xCentre = (m.bbox.x0 + m.bbox.x1) / 2;
-        return xCentre >= xArticleDebut - 20 && xCentre < xArticleFin;
+        return xCentre >= xArticleDebut - margeGaucheArticle && xCentre < xArticleFin;
       }).sort(function(a, b){ return a.bbox.x0 - b.bbox.x0; });
       var motsQuantite = ligne.mots.filter(function(m){
         var xCentre = (m.bbox.x0 + m.bbox.x1) / 2;
         return xCentre >= xArticleFin && xCentre <= xQuantiteFin;
-      });
+      }).sort(function(a, b){ return a.bbox.x0 - b.bbox.x0; });
 
       var article = motsArticle.map(function(m){ return m.text; }).join(" ").trim();
       var texteQuantite = motsQuantite.map(function(m){ return m.text; }).join(" ");
@@ -1931,7 +1992,32 @@
       resultats.push({ article: article, quantite: quantite });
     });
 
+    if(resultats.length === 0){
+      // repli si le découpage par colonnes n'a rien remonté malgré des en-têtes trouvés :
+      // mieux vaut proposer quelque chose (moins fiable) que de laisser une saisie vide
+      var repli = analyserParDerniereNombreDeLigne((resultatOCR.data.text || ""));
+      if(repli.length > 0) return { ok:true, lignes: repli, repli:true };
+    }
+
     return { ok:true, lignes: resultats };
+  }
+
+  // repli MOINS FIABLE que la lecture par colonnes, utilisé seulement si celle-ci ne
+  // trouve rien : le dernier nombre isolé de chaque ligne de texte = la quantité
+  function analyserParDerniereNombreDeLigne(texteBrut){
+    var lignes = texteBrut.split("\n").map(function(l){ return l.trim(); }).filter(Boolean);
+    var resultats = [];
+    lignes.forEach(function(ligne){
+      var m = ligne.match(/(\d+(?:[.,]\d+)?)\s*(?:u|pces?|pcs?)?\s*$/i);
+      if(!m) return;
+      var quantite = parseFloat(m[1].replace(",", "."));
+      if(!quantite || quantite <= 0) return;
+      var article = ligne.slice(0, m.index).trim();
+      article = article.replace(/^[A-Z0-9][A-Z0-9\-.]{2,}\s+/i, "").trim();
+      if(article.length < 2) return;
+      resultats.push({ article: article, quantite: quantite });
+    });
+    return resultats;
   }
 
   function ouvrirRelecture(cible){
@@ -1962,9 +2048,11 @@
         relectureEnCours[cible] = analyse.lignes;
         elCible(cible, "RelectureStatut").textContent = !analyse.ok
           ? analyse.message
-          : (analyse.lignes.length > 0
-            ? analyse.lignes.length + " ligne(s) détectée(s) dans les colonnes Désignation / Qté : vérifie et corrige avant d'ajouter."
-            : "Colonnes Désignation / Qté trouvées, mais aucune ligne dessous. Ajoute les lignes à la main.");
+          : (analyse.lignes.length === 0
+            ? "Colonnes Désignation / Qté trouvées, mais aucune ligne dessous. Ajoute les lignes à la main."
+            : analyse.repli
+              ? analyse.lignes.length + " ligne(s) détectée(s) par un repli moins fiable (le découpage par colonnes n'a rien trouvé) : vérifie chaque ligne avec attention."
+              : analyse.lignes.length + " ligne(s) détectée(s) dans les colonnes Désignation / Qté : vérifie et corrige avant d'ajouter.");
         renderLignesRelecture(cible);
       })
       .catch(function(err){
@@ -2047,6 +2135,7 @@
   });
 
   document.getElementById("commandeClose").addEventListener("click", closeCommandeModal);
+  document.getElementById("commandeRetour").addEventListener("click", closeCommandeModal);
   document.getElementById("commandeScrim").addEventListener("click", closeCommandeModal);
 
   document.getElementById("commandeAjouter").addEventListener("click", function(){
