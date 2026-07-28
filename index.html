@@ -555,6 +555,10 @@
     background:color-mix(in srgb, var(--warn) 14%, var(--surface));
   }
   .relecture-doute{ font-size:.68rem; color:var(--warn); margin:-2px 0 2px 2px; }
+  /* ligne présente sur le bon mais NON livrée : signalée plus fort qu'un simple doute,
+     parce que la compter comme reçue fausserait le reste à livrer (cas du 28/07) */
+  .ligne-relecture.non-livre input{ opacity:.6; text-decoration:line-through; }
+  .relecture-nonlivre{ font-size:.68rem; color:var(--danger); font-weight:600; margin:-2px 0 2px 2px; }
   .relecture-brut{ font-size:.7rem; color:var(--muted); }
   .relecture-brut pre{
     white-space:pre-wrap; word-break:break-word; max-height:140px; overflow-y:auto; margin:6px 0 0;
@@ -661,7 +665,7 @@
     volontaire du 27/07). La lecture photo ne fonctionne que sur le vrai site déployé, pas dans un aperçu
     Claude. Les données restent uniquement dans ce navigateur pour l'instant (rien n'est partagé ni
     sauvegardé ailleurs).
-    <p class="version-tag mono">Version v14 · 28/07/2026 · Défilement des lignes lues corrigé, encadré qui se referme après ajout</p>
+    <p class="version-tag mono">Version v15 · 28/07/2026 · Lignes « non livrées » du BL détectées et jamais comptées comme reçues</p>
   </footer>
 </div>
 
@@ -2103,12 +2107,27 @@
   // (jamais sur une désignation, où elles détruiraient le texte).
   function corrigerConfusionsChiffres(texte){
     return (texte || "")
-      .replace(/[OoQ]/g, "0")
+      .replace(/[OoQØø]/g, "0") // Ø inclus : le zéro barré des BL, souvent rendu tel quel
       .replace(/[lI|!]/g, "1")
       .replace(/[Ss]/g, "5")
       .replace(/[B]/g, "8")
       .replace(/[Zz]/g, "2")
       .replace(/[G]/g, "6");
+  }
+
+  // Ligne présente sur le BL mais dont RIEN n'est arrivé (reliquat, non livré, annulé).
+  // Cas réel du 28/07 : « BISCUITS ... — RELIQUAT, NON LIVRE », quantité 0 barrée d'un
+  // trait, que l'OCR a lue 8. Ajouter 8 ferait croire la commande soldée alors qu'il reste
+  // tout à livrer : c'est la faute la plus coûteuse possible sur un reste-à-livrer.
+  // On ne devine donc PAS le chiffre, on lit la mention écrite, qui elle est explicite.
+  var MENTIONS_NON_LIVRE = [
+    "nonlivre", "nonlivree", "nonrecu", "nonrecue", "reliquat", "reliquats",
+    "annule", "annulee", "reporte", "reportee", "manquant", "manquante",
+    "rupture", "asuivre", "restealivrer", "nonfourni"
+  ];
+  function detecterNonLivre(article){
+    var norm = normaliserEntete(article); // majuscules, accents et ponctuation neutralisés
+    return MENTIONS_NON_LIVRE.some(function(mention){ return norm.indexOf(mention) !== -1; });
   }
 
   // Un nombre franc l'emporte ; la correction de confusion n'intervient qu'en repli, pour
@@ -2205,9 +2224,13 @@
           ? Math.min.apply(null, motsQuantite.map(function(m){ return m.confidence || 0; }))
           : 0;
       }
-      if(!qte || !qte.valeur || qte.valeur <= 0) return;
-
       if(estLigneHorsTableau(article)){ ignorees++; return; }
+
+      // la mention écrite l'emporte sur le chiffre lu : sur une ligne « non livré », la
+      // quantité est 0 même si l'OCR a cru voir 8 dans un zéro barré
+      var nonLivre = detecterNonLivre(article);
+      if(nonLivre){ qte = { valeur:0, corrige:false }; }
+      else if(!qte || !qte.valeur || qte.valeur <= 0){ return; }
 
       var confArticle = motsArticle.length
         ? Math.min.apply(null, motsArticle.map(function(m){ return m.confidence || 0; }))
@@ -2220,7 +2243,8 @@
         confQuantite: Math.round(confQuantite),
         // une quantité devinée par correction de caractère est toujours à relire,
         // quelle que soit la confiance annoncée par le moteur
-        douteuse: confArticle < SEUIL_CONFIANCE || confQuantite < SEUIL_CONFIANCE || qte.corrige,
+        douteuse: !nonLivre && (confArticle < SEUIL_CONFIANCE || confQuantite < SEUIL_CONFIANCE || qte.corrige),
+        nonLivre: nonLivre,
         quantiteFiabilisee: sourceFiable
       });
     });
@@ -2308,9 +2332,13 @@
         relectureEnCours[cible] = analyse.lignes;
 
         var nbDouteuses = analyse.lignes.filter(function(l){ return l.douteuse; }).length;
+        var nbNonLivrees = analyse.lignes.filter(function(l){ return l.nonLivre; }).length;
         var suffixe = nbDouteuses > 0
           ? " " + nbDouteuses + " à relire en priorité (signalée(s) en orange)."
           : " Relis quand même avant d'ajouter.";
+        if(nbNonLivrees > 0){
+          suffixe += " " + nbNonLivrees + " marquée(s) non livrée(s) sur le bon : gardée(s) à 0, non ajoutée(s).";
+        }
         if(analyse.ignorees > 0) suffixe += " " + analyse.ignorees + " ligne(s) de bas de tableau écartée(s).";
 
         elCible(cible, "RelectureStatut").textContent = !analyse.ok
@@ -2365,9 +2393,12 @@
         renderLignesRelecture(cible);
       });
 
-      var ligne = el("div", { class:"ligne-relecture" }, [ articleInput, qteInput, delBtn ]);
+      var ligne = el("div", { class:"ligne-relecture" + (l.nonLivre ? " non-livre" : "") }, [ articleInput, qteInput, delBtn ]);
       wrap.appendChild(ligne);
-      if(l.douteuse){
+      if(l.nonLivre){
+        wrap.appendChild(el("div", { class:"relecture-nonlivre",
+          text:"↑ marquée non livrée sur le bon : quantité forcée à 0, cette ligne ne sera PAS ajoutée" }));
+      } else if(l.douteuse){
         wrap.appendChild(el("div", { class:"relecture-doute", text:"↑ lecture incertaine, compare avec le papier" }));
       }
     });
@@ -2381,6 +2412,8 @@
     relectureEnCours[cible].forEach(function(l){
       var article = (l.article || "").trim();
       var quantite = parseFloat(l.quantite);
+      // une quantité nulle n'est jamais ajoutée : c'est ce qui écarte les lignes marquées
+      // non livrées sur le bon (rien n'est arrivé, donc rien à porter en réception)
       if(!article || !quantite || quantite <= 0) return;
       affaire[champ].push({ id: uid(), article: article, quantite: quantite, ajouteLe: Date.now() });
     });
