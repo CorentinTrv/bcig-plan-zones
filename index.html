@@ -539,6 +539,13 @@
     flex:1; padding:6px 8px; border-radius:6px; border:1px solid var(--line); background:var(--surface);
     color:var(--ink); font-size:.8rem;
   }
+  /* lecture incertaine : on SIGNALE, on ne corrige ni ne bloque rien (28/07, après le
+     1er test réel où des quantités fausses passaient sans que rien ne l'indique) */
+  .ligne-relecture input.douteux{
+    border-color:var(--warn);
+    background:color-mix(in srgb, var(--warn) 14%, var(--surface));
+  }
+  .relecture-doute{ font-size:.68rem; color:var(--warn); margin:-2px 0 2px 2px; }
   .relecture-brut{ font-size:.7rem; color:var(--muted); }
   .relecture-brut pre{
     white-space:pre-wrap; word-break:break-word; max-height:140px; overflow-y:auto; margin:6px 0 0;
@@ -645,7 +652,7 @@
     volontaire du 27/07). La lecture photo ne fonctionne que sur le vrai site déployé, pas dans un aperçu
     Claude. Les données restent uniquement dans ce navigateur pour l'instant (rien n'est partagé ni
     sauvegardé ailleurs).
-    <p class="version-tag mono">Version v12 · 27/07/2026 · Retour Commande, lecture OCR renforcée, vue affaire isolée</p>
+    <p class="version-tag mono">Version v13 · 28/07/2026 · Image nettoyée, quantités relues en 2e passe, doutes signalés</p>
   </footer>
 </div>
 
@@ -1927,10 +1934,91 @@
     return trouve;
   }
 
-  function analyserParColonnes(resultatOCR, cible){
-    var mots = resultatOCR && resultatOCR.data && resultatOCR.data.words;
+  // ---------------------------------------------------------------------------
+  // Préparation de l'image AVANT lecture (ajouté le 28/07 après le 1er vrai test).
+  // Leçon de ce test : le découpage par colonnes marchait, c'est la RECONNAISSANCE
+  // DES CARACTÈRES qui fautait (lettres fausses, quantités erronées). Une photo A4
+  // prise au téléphone est le pire terrain pour Tesseract : angle, ombre, résolution.
+  // On ne binarise PAS en dur (un seuil global détruit une demi-page dès qu'il y a une
+  // ombre) : niveaux de gris + étirement de contraste sur les percentiles, et mise à
+  // l'échelle vers une largeur où Tesseract travaille bien.
+  // ---------------------------------------------------------------------------
+  var LARGEUR_OCR_MIN = 1600;
+  var LARGEUR_OCR_MAX = 2600;
+
+  function preparerImagePourOCR(fichier){
+    return new Promise(function(resolve, reject){
+      var url = URL.createObjectURL(fichier);
+      var img = new Image();
+      img.onload = function(){
+        var echelle = 1;
+        if(img.width < LARGEUR_OCR_MIN) echelle = LARGEUR_OCR_MIN / img.width;
+        else if(img.width > LARGEUR_OCR_MAX) echelle = LARGEUR_OCR_MAX / img.width;
+
+        var canvas = document.createElement("canvas");
+        canvas.width = Math.round(img.width * echelle);
+        canvas.height = Math.round(img.height * echelle);
+        var ctx = canvas.getContext("2d");
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        URL.revokeObjectURL(url);
+
+        try {
+          var image = ctx.getImageData(0, 0, canvas.width, canvas.height);
+          var px = image.data;
+          var hist = new Array(256);
+          for(var h = 0; h < 256; h++) hist[h] = 0;
+
+          // 1er passage : niveaux de gris + histogramme
+          for(var i = 0; i < px.length; i += 4){
+            var g = Math.round(0.299 * px[i] + 0.587 * px[i+1] + 0.114 * px[i+2]);
+            px[i] = px[i+1] = px[i+2] = g;
+            hist[g]++;
+          }
+
+          // bornes de contraste sur les percentiles 2 % / 98 % : insensible aux quelques
+          // pixels très sombres (ombre) ou très clairs (reflet) qui fausseraient un min/max
+          var total = canvas.width * canvas.height;
+          var seuilBas = total * 0.02, seuilHaut = total * 0.98;
+          var cumul = 0, pMin = 0, pMax = 255;
+          for(var b = 0; b < 256; b++){
+            cumul += hist[b];
+            if(cumul >= seuilBas){ pMin = b; break; }
+          }
+          cumul = 0;
+          for(var t = 0; t < 256; t++){
+            cumul += hist[t];
+            if(cumul >= seuilHaut){ pMax = t; break; }
+          }
+
+          // 2e passage : étirement (si la plage est trop étroite on ne touche à rien,
+          // mieux vaut une image terne qu'une image saturée qui perd des caractères)
+          if(pMax - pMin > 30){
+            var facteur = 255 / (pMax - pMin);
+            for(var j = 0; j < px.length; j += 4){
+              var v = Math.max(0, Math.min(255, Math.round((px[j] - pMin) * facteur)));
+              px[j] = px[j+1] = px[j+2] = v;
+            }
+          }
+          ctx.putImageData(image, 0, 0);
+        } catch(e){
+          // getImageData peut échouer (canvas dit "sali") : on garde l'image redimensionnée
+          // sans amélioration plutôt que de faire échouer toute la lecture
+        }
+        resolve(canvas);
+      };
+      img.onerror = function(){
+        URL.revokeObjectURL(url);
+        reject(new Error("Image illisible. Reprends la photo."));
+      };
+      img.src = url;
+    });
+  }
+
+  // Géométrie des colonnes : isolée de l'assemblage des lignes, parce qu'elle sert
+  // AUSSI à découper la bande à relire en 2e passe (voir lireColonneQuantite).
+  function calculerGeometrieColonnes(mots, cible){
     if(!mots || mots.length === 0){
-      return { ok:false, lignes:[], message:"Aucun mot détecté sur la photo. Reprends-la, bien cadrée et lisible." };
+      return { ok:false, message:"Aucun mot détecté sur la photo. Reprends-la, bien cadrée et lisible." };
     }
 
     var entetes = trouverEnTetes(mots, cible);
@@ -1939,67 +2027,203 @@
     if(!entetes.quantite) manquantes.push("Qté");
     if(manquantes.length > 0){
       return {
-        ok:false, lignes:[],
+        ok:false,
         message:"Colonne(s) introuvable(s) sur la photo : " + manquantes.join(", ") +
           ". Vérifie le cadrage, ou dis-moi l'intitulé exact utilisé sur ce document pour que je l'ajoute."
       };
     }
 
-    var yEntete = Math.min(entetes.article.bbox.y1, entetes.quantite.bbox.y1);
-    var xArticleDebut = entetes.article.bbox.x0;
-    var xArticleFin = entetes.quantite.bbox.x0;
-    // marges généreuses (les chiffres et le texte débordent souvent un peu de leur en-tête)
-    var xQuantiteFin = entetes.quantite.bbox.x1 + 250;
-    var margeGaucheArticle = 40;
+    var hauteurEntete = entetes.article.bbox.y1 - entetes.article.bbox.y0;
+    return {
+      ok: true,
+      yEntete: Math.min(entetes.article.bbox.y1, entetes.quantite.bbox.y1),
+      xArticleDebut: entetes.article.bbox.x0,
+      xArticleFin: entetes.quantite.bbox.x0,
+      // marges généreuses (les chiffres et le texte débordent souvent un peu de leur en-tête)
+      xQuantiteFin: entetes.quantite.bbox.x1 + 250,
+      margeGaucheArticle: 40,
+      // tolérance ADAPTÉE à la taille réelle du texte de l'en-tête (pas une valeur fixe en
+      // pixels qui ne veut rien dire d'une photo à l'autre selon le zoom/la résolution) :
+      // c'est ce qui a fait échouer la 1ère version sur le premier test réel du 27/07
+      toleranceY: Math.max(10, Math.round(hauteurEntete * 0.9))
+    };
+  }
+
+  // 2e passe de lecture, sur la SEULE bande de la colonne quantité, avec l'alphabet
+  // restreint aux chiffres. C'est le correctif central du 28/07 : sur cette bande on
+  // sait qu'aucune lettre n'est attendue, donc on retire à Tesseract la possibilité
+  // même de rendre un "l" à la place d'un 1 ou un "S" à la place d'un 5.
+  // Le découpage est fait à la main dans un canvas (et non via l'option rectangle) pour
+  // que le décalage des coordonnées reste explicite et sous notre contrôle.
+  function lireColonneQuantite(worker, canvas, geo){
+    var marge = Math.round(geo.toleranceY / 2);
+    var left = Math.max(0, Math.round(geo.xArticleFin));
+    var top = Math.max(0, Math.round(geo.yEntete - marge));
+    var width = Math.min(canvas.width - left, Math.round(geo.xQuantiteFin - geo.xArticleFin));
+    var height = canvas.height - top;
+    if(width <= 0 || height <= 0) return Promise.resolve(null);
+
+    var bande = document.createElement("canvas");
+    bande.width = width;
+    bande.height = height;
+    bande.getContext("2d").drawImage(canvas, left, top, width, height, 0, 0, width, height);
+
+    return worker.setParameters({
+      tessedit_char_whitelist: "0123456789.,",
+      tessedit_pageseg_mode: "6"
+    })
+      .then(function(){ return worker.recognize(bande); })
+      .then(function(res){
+        var mots = (res && res.data && res.data.words) || [];
+        // retour dans le repère de l'image entière
+        return mots.map(function(m){
+          return {
+            text: m.text,
+            confidence: m.confidence,
+            bbox: {
+              x0: m.bbox.x0 + left, x1: m.bbox.x1 + left,
+              y0: m.bbox.y0 + top,  y1: m.bbox.y1 + top
+            }
+          };
+        });
+      })
+      .catch(function(){ return null; }); // la 2e passe est un bonus, jamais un bloquant
+  }
+
+  // Confusions classiques de l'OCR, appliquées UNIQUEMENT là où un nombre est attendu
+  // (jamais sur une désignation, où elles détruiraient le texte).
+  function corrigerConfusionsChiffres(texte){
+    return (texte || "")
+      .replace(/[OoQ]/g, "0")
+      .replace(/[lI|!]/g, "1")
+      .replace(/[Ss]/g, "5")
+      .replace(/[B]/g, "8")
+      .replace(/[Zz]/g, "2")
+      .replace(/[G]/g, "6");
+  }
+
+  // Un nombre franc l'emporte ; la correction de confusion n'intervient qu'en repli, pour
+  // ne pas transformer une lecture correcte en devinette.
+  // Piège traité explicitement : sur "l2" (un 1 lu comme un L), chercher bêtement le
+  // premier chiffre rendrait 2 au lieu de 12. On juge donc le noyau ENTIER de la cellule
+  // avant de conclure, au lieu de se contenter du premier chiffre croisé.
+  var UNITES_COLONNE_QTE = /\b(u|un|pce|pces|pc|pcs|piece|pieces|ml|cl|kg|g|l|m)\b/gi;
+  function extraireQuantite(texte){
+    var noyau = (texte || "").replace(UNITES_COLONNE_QTE, "").trim();
+    if(/^\d+(?:[.,]\d+)?$/.test(noyau)){
+      return { valeur: parseFloat(noyau.replace(",", ".")), corrige:false };
+    }
+    var corrige = corrigerConfusionsChiffres(noyau);
+    if(/^\d+(?:[.,]\d+)?$/.test(corrige)){
+      return { valeur: parseFloat(corrige.replace(",", ".")), corrige:true };
+    }
+    // dernier recours : la cellule contient autre chose qu'un nombre, on prend le premier
+    // nombre trouvé mais on marque la ligne comme à relire
+    var m = corrige.match(/\d+(?:[.,]\d+)?/) || (texte || "").match(/\d+(?:[.,]\d+)?/);
+    if(m) return { valeur: parseFloat(m[0].replace(",", ".")), corrige:true };
+    return null;
+  }
+
+  // Lignes de bas de tableau à ne PAS prendre pour des articles (elles expliquent une
+  // partie des "lignes en trop" du test du 27/07). Filtre volontairement prudent :
+  // on écarte le libellé seul, pas une désignation qui contiendrait le mot.
+  var MOTS_HORS_TABLEAU = [
+    "total", "totaux", "tva", "ht", "ttc", "page", "signature", "cachet",
+    "port", "franco", "remise", "acompte", "net", "montant", "soustotal", "sous"
+  ];
+  function estLigneHorsTableau(article){
+    var norm = normaliserEntete(article);
+    if(norm.length < 3) return true; // pas de lettres, ou trop court pour être un article
+    return MOTS_HORS_TABLEAU.some(function(mot){
+      return norm === mot || (norm.indexOf(mot) === 0 && norm.length <= mot.length + 3);
+    });
+  }
+
+  var SEUIL_CONFIANCE = 70; // en dessous, la ligne est signalée à relire, jamais supprimée
+
+  function analyserParColonnes(resultatOCR, cible, motsQuantiteFiables){
+    var mots = resultatOCR && resultatOCR.data && resultatOCR.data.words;
+    var geo = calculerGeometrieColonnes(mots, cible);
+    if(!geo.ok) return { ok:false, lignes:[], message:geo.message };
 
     // règle générale : tout ce qui est sous l'en-tête est une ligne candidate, sans limite
     // basse ; on lit jusqu'au bas de la page, pas seulement les premières lignes du tableau
-    var motsCorps = mots.filter(function(m){ return m.bbox.y0 > yEntete + 5; });
-
-    // tolérance ADAPTÉE à la taille réelle du texte de l'en-tête (pas une valeur fixe en
-    // pixels qui ne veut rien dire d'une photo à l'autre selon le zoom/la résolution) :
-    // c'est ce qui a fait échouer la 1ère version sur le premier test réel du 27/07
-    var hauteurEntete = entetes.article.bbox.y1 - entetes.article.bbox.y0;
-    var TOLERANCE_Y = Math.max(10, Math.round(hauteurEntete * 0.9));
+    var motsCorps = mots.filter(function(m){ return m.bbox.y0 > geo.yEntete + 5; });
 
     var lignesTableau = [];
     motsCorps.forEach(function(m){
       var yCentre = (m.bbox.y0 + m.bbox.y1) / 2;
-      var ligne = lignesTableau.find(function(l){ return Math.abs(l.y - yCentre) <= TOLERANCE_Y; });
+      var ligne = lignesTableau.find(function(l){ return Math.abs(l.y - yCentre) <= geo.toleranceY; });
       if(!ligne){ ligne = { y: yCentre, mots: [] }; lignesTableau.push(ligne); }
       ligne.mots.push(m);
     });
     lignesTableau.sort(function(a, b){ return a.y - b.y; });
 
     var resultats = [];
+    var ignorees = 0;
     lignesTableau.forEach(function(ligne){
       var motsArticle = ligne.mots.filter(function(m){
         var xCentre = (m.bbox.x0 + m.bbox.x1) / 2;
-        return xCentre >= xArticleDebut - margeGaucheArticle && xCentre < xArticleFin;
+        return xCentre >= geo.xArticleDebut - geo.margeGaucheArticle && xCentre < geo.xArticleFin;
       }).sort(function(a, b){ return a.bbox.x0 - b.bbox.x0; });
       var motsQuantite = ligne.mots.filter(function(m){
         var xCentre = (m.bbox.x0 + m.bbox.x1) / 2;
-        return xCentre >= xArticleFin && xCentre <= xQuantiteFin;
+        return xCentre >= geo.xArticleFin && xCentre <= geo.xQuantiteFin;
       }).sort(function(a, b){ return a.bbox.x0 - b.bbox.x0; });
 
       var article = motsArticle.map(function(m){ return m.text; }).join(" ").trim();
-      var texteQuantite = motsQuantite.map(function(m){ return m.text; }).join(" ");
-      var m2 = texteQuantite.match(/\d+(?:[.,]\d+)?/);
-      if(!article || !m2) return;
-      var quantite = parseFloat(m2[0].replace(",", "."));
-      if(!quantite || quantite <= 0) return;
+      if(!article) return;
 
-      resultats.push({ article: article, quantite: quantite });
+      // la 2e passe (alphabet chiffres seuls) prime sur la 1re quand elle a lu quelque
+      // chose à la hauteur de cette ligne : c'est elle qui corrige les quantités fausses
+      var qte = null, confQuantite = 0, sourceFiable = false;
+      if(motsQuantiteFiables){
+        var motsBande = motsQuantiteFiables.filter(function(m){
+          var yc = (m.bbox.y0 + m.bbox.y1) / 2;
+          return Math.abs(yc - ligne.y) <= geo.toleranceY;
+        }).sort(function(a, b){ return a.bbox.x0 - b.bbox.x0; });
+        if(motsBande.length > 0){
+          qte = extraireQuantite(motsBande.map(function(m){ return m.text; }).join(" "));
+          if(qte){
+            sourceFiable = true;
+            confQuantite = Math.min.apply(null, motsBande.map(function(m){ return m.confidence || 0; }));
+          }
+        }
+      }
+      if(!qte){
+        qte = extraireQuantite(motsQuantite.map(function(m){ return m.text; }).join(" "));
+        confQuantite = motsQuantite.length
+          ? Math.min.apply(null, motsQuantite.map(function(m){ return m.confidence || 0; }))
+          : 0;
+      }
+      if(!qte || !qte.valeur || qte.valeur <= 0) return;
+
+      if(estLigneHorsTableau(article)){ ignorees++; return; }
+
+      var confArticle = motsArticle.length
+        ? Math.min.apply(null, motsArticle.map(function(m){ return m.confidence || 0; }))
+        : 0;
+
+      resultats.push({
+        article: article,
+        quantite: qte.valeur,
+        confArticle: Math.round(confArticle),
+        confQuantite: Math.round(confQuantite),
+        // une quantité devinée par correction de caractère est toujours à relire,
+        // quelle que soit la confiance annoncée par le moteur
+        douteuse: confArticle < SEUIL_CONFIANCE || confQuantite < SEUIL_CONFIANCE || qte.corrige,
+        quantiteFiabilisee: sourceFiable
+      });
     });
 
     if(resultats.length === 0){
       // repli si le découpage par colonnes n'a rien remonté malgré des en-têtes trouvés :
       // mieux vaut proposer quelque chose (moins fiable) que de laisser une saisie vide
       var repli = analyserParDerniereNombreDeLigne((resultatOCR.data.text || ""));
-      if(repli.length > 0) return { ok:true, lignes: repli, repli:true };
+      if(repli.length > 0) return { ok:true, lignes: repli, repli:true, ignorees:ignorees };
     }
 
-    return { ok:true, lignes: resultats };
+    return { ok:true, lignes: resultats, ignorees: ignorees };
   }
 
   // repli MOINS FIABLE que la lecture par colonnes, utilisé seulement si celle-ci ne
@@ -2015,7 +2239,9 @@
       var article = ligne.slice(0, m.index).trim();
       article = article.replace(/^[A-Z0-9][A-Z0-9\-.]{2,}\s+/i, "").trim();
       if(article.length < 2) return;
-      resultats.push({ article: article, quantite: quantite });
+      if(estLigneHorsTableau(article)) return;
+      // ce chemin est un repli assumé : chaque ligne est marquée à relire, sans exception
+      resultats.push({ article: article, quantite: quantite, douteuse: true, confArticle: 0, confQuantite: 0 });
     });
     return resultats;
   }
@@ -2035,28 +2261,63 @@
     elCible(cible, "RelectureLignes").innerHTML = "";
     elCible(cible, "RelectureBrut").textContent = "";
 
+    // Deux passes volontaires (28/07) : la 1re lit toute la page (elle donne les colonnes
+    // et les désignations), la 2de relit la seule bande des quantités avec l'alphabet
+    // restreint aux chiffres. Le worker est partagé entre les deux, et toujours libéré.
+    var worker = null;
+    var canvasPrepare = null;
+
     chargerTesseract()
       .then(function(){
+        elCible(cible, "RelectureStatut").textContent = "Préparation de la photo…";
+        return preparerImagePourOCR(fichier);
+      })
+      .then(function(canvas){
+        canvasPrepare = canvas;
         elCible(cible, "RelectureStatut").textContent = "Lecture de la photo en cours…";
-        return window.Tesseract.recognize(fichier, "fra");
+        return window.Tesseract.createWorker("fra");
+      })
+      .then(function(w){
+        worker = w;
+        return worker.recognize(canvasPrepare);
       })
       .then(function(resultat){
         var texte = (resultat && resultat.data && resultat.data.text) || "";
         elCible(cible, "RelectureBrut").textContent = texte || "(rien détecté)";
 
-        var analyse = analyserParColonnes(resultat, cible);
+        var geo = calculerGeometrieColonnes(resultat && resultat.data && resultat.data.words, cible);
+        if(!geo.ok){
+          return { resultat: resultat, motsQte: null }; // colonnes introuvables : pas de 2e passe
+        }
+        elCible(cible, "RelectureStatut").textContent = "Vérification des quantités…";
+        return lireColonneQuantite(worker, canvasPrepare, geo).then(function(motsQte){
+          return { resultat: resultat, motsQte: motsQte };
+        });
+      })
+      .then(function(paquet){
+        var analyse = analyserParColonnes(paquet.resultat, cible, paquet.motsQte);
         relectureEnCours[cible] = analyse.lignes;
+
+        var nbDouteuses = analyse.lignes.filter(function(l){ return l.douteuse; }).length;
+        var suffixe = nbDouteuses > 0
+          ? " " + nbDouteuses + " à relire en priorité (signalée(s) en orange)."
+          : " Relis quand même avant d'ajouter.";
+        if(analyse.ignorees > 0) suffixe += " " + analyse.ignorees + " ligne(s) de bas de tableau écartée(s).";
+
         elCible(cible, "RelectureStatut").textContent = !analyse.ok
           ? analyse.message
           : (analyse.lignes.length === 0
             ? "Colonnes Désignation / Qté trouvées, mais aucune ligne dessous. Ajoute les lignes à la main."
             : analyse.repli
-              ? analyse.lignes.length + " ligne(s) détectée(s) par un repli moins fiable (le découpage par colonnes n'a rien trouvé) : vérifie chaque ligne avec attention."
-              : analyse.lignes.length + " ligne(s) détectée(s) dans les colonnes Désignation / Qté : vérifie et corrige avant d'ajouter.");
+              ? analyse.lignes.length + " ligne(s) trouvée(s) par un repli moins fiable (le découpage par colonnes n'a rien donné) : vérifie chaque ligne."
+              : analyse.lignes.length + " ligne(s) lue(s)." + suffixe);
         renderLignesRelecture(cible);
       })
       .catch(function(err){
         elCible(cible, "RelectureStatut").textContent = (err && err.message) || "Échec de la lecture.";
+      })
+      .then(function(){
+        if(worker) worker.terminate();
       });
   }
 
@@ -2064,13 +2325,30 @@
     var wrap = elCible(cible, "RelectureLignes");
     wrap.innerHTML = "";
     relectureEnCours[cible].forEach(function(l, index){
-      var articleInput = el("input", { type:"text", value:l.article, placeholder:"Article" });
-      articleInput.value = l.article;
-      articleInput.addEventListener("input", function(){ l.article = articleInput.value; });
+      // le champ reste éditable et modifiable comme avant : le marquage SIGNALE un doute,
+      // il ne bloque rien et ne corrige rien tout seul
+      var articleDouteux = l.douteuse && (l.confArticle || 0) < SEUIL_CONFIANCE;
+      var qteDouteuse = l.douteuse && (l.confQuantite || 0) < SEUIL_CONFIANCE;
 
-      var qteInput = el("input", { type:"number", min:"1", class:"qte-input" });
+      var articleInput = el("input", {
+        type:"text", value:l.article, placeholder:"Article",
+        class: articleDouteux ? "douteux" : ""
+      });
+      articleInput.value = l.article;
+      articleInput.addEventListener("input", function(){
+        l.article = articleInput.value;
+        articleInput.classList.remove("douteux"); // corrigé à la main = doute levé
+      });
+
+      var qteInput = el("input", {
+        type:"number", min:"1",
+        class: "qte-input" + (qteDouteuse ? " douteux" : "")
+      });
       qteInput.value = l.quantite;
-      qteInput.addEventListener("input", function(){ l.quantite = parseFloat(qteInput.value) || 0; });
+      qteInput.addEventListener("input", function(){
+        l.quantite = parseFloat(qteInput.value) || 0;
+        qteInput.classList.remove("douteux");
+      });
 
       var delBtn = el("button", { type:"button", class:"btn-commande", text:"×" });
       delBtn.addEventListener("click", function(){
@@ -2078,7 +2356,11 @@
         renderLignesRelecture(cible);
       });
 
-      wrap.appendChild(el("div", { class:"ligne-relecture" }, [ articleInput, qteInput, delBtn ]));
+      var ligne = el("div", { class:"ligne-relecture" }, [ articleInput, qteInput, delBtn ]);
+      wrap.appendChild(ligne);
+      if(l.douteuse){
+        wrap.appendChild(el("div", { class:"relecture-doute", text:"↑ lecture incertaine, compare avec le papier" }));
+      }
     });
   }
 
