@@ -34,7 +34,9 @@
     --attente-ink:#10191d;
     --attente-surface:#233138;
     --usinage:#4a9b76;
-    --usinage-ink:#ffffff;
+    /* texte sombre et non blanc : sur ce vert, le blanc ne donnait qu'un contraste de
+       3.4, sous le seuil lisible pour du petit texte (28/07). Ici 4.5. */
+    --usinage-ink:#0d2b1f;
     --usinage-surface:#16302a;
     --accent:#dd6690;
     --accent-ink:#2a0c17;
@@ -58,7 +60,7 @@
     --ink:#f1e7e2; --paper:#1b1416; --surface:#251b1e; --surface-2:#2f2225; --line:#4a3a3d; --muted:#b5a29b;
     --prep-ink:#2a1f00; --prep-surface:#3a2c07; --test:#5b9bd1; --test-ink:#0b1720; --test-surface:#16303f;
     --attente:#7d97a6; --attente-ink:#10191d; --attente-surface:#233138;
-    --usinage:#4a9b76; --usinage-ink:#ffffff; --usinage-surface:#16302a;
+    --usinage:#4a9b76; --usinage-ink:#0d2b1f; --usinage-surface:#16302a;
     --accent:#dd6690; --accent-ink:#2a0c17; --danger:#e0685a; --danger-ink:#2a0d09;
     --warn:#e0912f; --warn-ink:#2a1400;
     --shadow: 0 1px 2px rgba(0,0,0,.5), 0 8px 24px -12px rgba(0,0,0,.7);
@@ -92,24 +94,26 @@
 
   .page{ max-width:1180px; margin:0 auto; padding:24px 20px 80px; }
 
+  /* En-tête resserré (28/07) : il occupait trop de hauteur et repoussait le plan, qui est
+     le vrai outil de travail, sous la ligne de flottaison. */
   header.top{
-    display:flex; flex-wrap:wrap; gap:16px 24px; align-items:flex-end; justify-content:space-between;
-    padding-bottom:18px; border-bottom:1px solid var(--line); margin-bottom:22px;
+    display:flex; flex-wrap:wrap; gap:12px 24px; align-items:flex-end; justify-content:space-between;
+    padding-bottom:12px; border-bottom:1px solid var(--line); margin-bottom:16px;
   }
-  .brand{ display:flex; align-items:flex-start; gap:14px; }
+  .brand{ display:flex; align-items:center; gap:12px; }
   .brand-mark{
     flex:none; display:inline-flex; align-items:center; justify-content:center;
-    width:52px; height:52px; border-radius:10px; background:var(--accent); color:var(--accent-ink);
-    font-weight:800; font-size:.98rem; letter-spacing:.02em;
+    width:44px; height:44px; border-radius:10px; background:var(--accent); color:var(--accent-ink);
+    font-weight:800; font-size:.86rem; letter-spacing:.02em;
   }
   .brand-sub{
     margin:0 0 4px; font-size:.72rem; text-transform:uppercase; letter-spacing:.06em;
     color:var(--accent); font-weight:700;
   }
   header.top h1{
-    font-size:1.5rem; margin:0 0 6px; letter-spacing:-.01em; text-wrap:balance;
+    font-size:1.3rem; margin:0 0 3px; letter-spacing:-.01em; text-wrap:balance;
   }
-  header.top p{ margin:0; color:var(--muted); font-size:.9rem; max-width:52ch; }
+  header.top p{ margin:0; color:var(--muted); font-size:.84rem; max-width:52ch; }
   .legend{ display:flex; gap:14px; font-size:.78rem; color:var(--muted); align-items:center; flex-wrap:wrap; }
   .legend .swatch{ display:inline-flex; align-items:center; gap:6px; }
   .legend i{ width:11px; height:11px; border-radius:3px; display:inline-block; }
@@ -117,6 +121,19 @@
   .legend i.test{ background:var(--test); }
   .legend i.attente{ background:var(--attente); }
   .legend i.usinage{ background:var(--usinage); }
+
+  /* Sur téléphone, l'en-tête mangeait presque un écran avant le premier bloc utile.
+     On garde ce qui identifie et ce qui sert (marque, titre, légende des couleurs), on
+     retire ce qui n'est qu'explicatif et déjà connu de qui utilise l'outil au quotidien. */
+  @media (max-width:640px){
+    header.top{ gap:10px 16px; padding-bottom:10px; margin-bottom:14px; }
+    header.top h1{ font-size:1.08rem; }
+    header.top p{ display:none; }
+    .brand-sub{ display:none; }
+    .brand-mark{ width:38px; height:38px; font-size:.78rem; }
+    .legend{ gap:8px 12px; font-size:.72rem; }
+    .page{ padding:16px 14px 60px; }
+  }
 
   .toolbar{
     display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-bottom:14px;
@@ -146,7 +163,7 @@
   .lookup-result.found-usinage{ background:var(--usinage-surface); color:var(--ink); border-color:var(--usinage); }
   .lookup-result.multiple{ background:var(--surface-2); color:var(--ink); border-color:var(--line); }
   .lookup-result.unknown{ background:color-mix(in srgb, var(--warn) 14%, var(--surface)); color:var(--warn); border-color:var(--warn); }
-  .stat-row{ display:flex; gap:16px; align-items:center; font-size:.78rem; color:var(--muted); }
+  .stat-row{ display:flex; flex-wrap:wrap; gap:8px 16px; align-items:center; font-size:.78rem; color:var(--muted); }
   .stat-row strong{ color:var(--ink); font-variant-numeric:tabular-nums; }
   .occupancy{ display:flex; align-items:center; gap:8px; }
   .occupancy-bar{
@@ -210,18 +227,33 @@
   .tile.attente{ background:var(--attente-surface); border-color:color-mix(in srgb, var(--attente) 45%, transparent); }
   .tile.usinage{ background:var(--usinage-surface); border-color:color-mix(in srgb, var(--usinage) 45%, transparent); }
   .tile.dim{ opacity:.32; }
-  .tile .code{ font-weight:700; font-size:.86rem; }
-  .tile.prep .code{ color:var(--prep-ink); }
-  .tile.test .code{ color:var(--test-ink); background:var(--test); display:inline-block; padding:1px 6px; border-radius:5px; width:fit-content; }
-  .tile.attente .code{ color:var(--attente-ink); background:var(--attente); display:inline-block; padding:1px 6px; border-radius:5px; width:fit-content; }
-  .tile.usinage .code{ color:var(--usinage-ink); background:var(--usinage); display:inline-block; padding:1px 6px; border-radius:5px; width:fit-content; }
+  /* Le code de zone porte la même pastille pour TOUS les types (28/07). Avant, la
+     préparation était la seule sans fond : son texte --prep-ink (#2a1f00) se posait sur
+     --prep-surface (#3a2c07), deux bruns quasi identiques, donc un code illisible sur les
+     zones les plus utilisées de l'écran. Le padding vertical passe aussi de 1px à 3px :
+     à 1px le texte touchait les bords de sa pastille (le « rectangle mal cadré »). */
+  .tile .code{
+    font-weight:700; font-size:.86rem;
+    display:inline-block; width:fit-content; max-width:100%;
+    padding:3px 8px; border-radius:5px; line-height:1.25;
+  }
+  .tile.prep .code{ color:var(--prep-ink); background:var(--prep); }
+  .tile.test .code{ color:var(--test-ink); background:var(--test); }
+  .tile.attente .code{ color:var(--attente-ink); background:var(--attente); }
+  .tile.usinage .code{ color:var(--usinage-ink); background:var(--usinage); }
+  /* une tuile qui porte le badge « ! » réserve la place en haut à droite, sinon le code
+     de la 1re ligne passait dessous */
+  .tile:has(.warn-badge) .code{ max-width:calc(100% - 20px); }
   .tile .cableur{ font-size:.68rem; color:var(--muted); font-style:italic; }
   .tile .chips{ display:flex; flex-wrap:wrap; gap:3px; margin-top:auto; }
+  /* L'appli est en thème sombre par défaut, donc la pastille part d'un voile CLAIR.
+     Avant, elle partait d'un voile noir corrigé seulement par une règle [data-theme] ou
+     par prefers-color-scheme : sur un téléphone réglé en clair, aucune des deux ne
+     s'appliquait et les numéros d'affaires devenaient noirs sur fond sombre, illisibles. */
   .chip{
-    font-size:.62rem; padding:1px 5px; border-radius:4px; background:rgba(0,0,0,.08);
+    font-size:.62rem; padding:2px 6px; border-radius:4px; background:rgba(255,255,255,.14);
   }
-  :root[data-theme="dark"] .chip{ background:rgba(255,255,255,.12); }
-  @media (prefers-color-scheme:dark){ :root:not([data-theme="light"]) .chip{ background:rgba(255,255,255,.12); } }
+  :root[data-theme="light"] .chip{ background:rgba(0,0,0,.08); }
   .tile .empty{ font-size:.68rem; color:var(--muted); opacity:.6; }
 
   /* disposition "plan usine" : reprend la géométrie relevée sur la photo.
@@ -465,9 +497,11 @@
   .sidebar-meta-line{ display:flex; align-items:center; gap:6px; margin-top:2px; }
   .sidebar-zone{
     font-size:.6rem; font-weight:700; text-transform:uppercase;
-    letter-spacing:.03em; padding:1px 6px; border-radius:4px;
+    letter-spacing:.03em; padding:2px 6px; border-radius:4px; line-height:1.3;
   }
-  .sidebar-zone.prep{ background:var(--prep-surface); color:var(--prep-ink); }
+  /* fond PLEIN comme les trois autres types : en --prep-surface, le texte --prep-ink
+     tombait sur un brun quasi identique et le nom de zone devenait illisible */
+  .sidebar-zone.prep{ background:var(--prep); color:var(--prep-ink); }
   .sidebar-zone.test{ background:var(--test); color:var(--test-ink); }
   .sidebar-zone.attente{ background:var(--attente); color:var(--attente-ink); }
   .sidebar-zone.usinage{ background:var(--usinage); color:var(--usinage-ink); }
@@ -475,7 +509,10 @@
   @media (max-width:900px){
     .content-layout{ flex-direction:column; }
     .affaires-sidebar{ position:static; width:100%; flex:none; max-height:none; }
-    .sidebar-list{ max-height:320px; }
+    /* sur téléphone la page défile déjà : les listes s'étendent au lieu d'emprisonner un
+       second défilement que le doigt n'attrape pas (la section reste repliable si elle
+       devient longue) */
+    .sidebar-list, .sidebar-historique .sidebar-list{ max-height:none; overflow-y:visible; }
   }
 
   /* fenêtre "nouvelle affaire" (bouton global, sans passer par une zone) */
@@ -490,7 +527,16 @@
     display:flex; align-items:center; justify-content:space-between; padding:16px 18px 10px;
     border-bottom:1px solid var(--line);
   }
-  .modal-head h3{ margin:0; font-size:1rem; }
+  /* le titre cède la place avant les boutons plutôt que de les pousser hors du cadre */
+  .modal-head h3{ margin:0; font-size:1rem; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  /* Bouton retour de la fenêtre Commande. Il réutilisait .retour-btn, dont le
+     margin-bottom:12px (prévu pour un tout autre contexte) le décalait vers le haut dans
+     un conteneur centré, et son libellé long serrait le titre et la croix au point de se
+     chevaucher sur téléphone. Classe dédiée, compacte, sans marge parasite. */
+  .modal-retour{
+    flex:none; margin:0; padding:5px 9px; font-size:.72rem; white-space:nowrap;
+  }
+  .modal-retour:hover{ color:var(--accent); border-color:var(--accent); }
   .modal-body{ padding:16px 18px 20px; display:flex; flex-direction:column; gap:14px; }
   .modal-field{ display:flex; flex-direction:column; gap:5px; }
   .modal-hint{ margin:0; font-size:.74rem; color:var(--muted); font-style:italic; }
@@ -512,7 +558,10 @@
     width:64px; flex:none; padding:7px 9px; border-radius:6px; border:1px solid var(--line);
     background:var(--surface-2); color:var(--ink); font-size:.82rem;
   }
-  .commande-lignes{ display:flex; flex-direction:column; gap:5px; max-height:160px; overflow-y:auto; }
+  /* même correctif que .relecture-lignes : pas de défilement imbriqué dans la fenêtre,
+     qui scrolle déjà. À 160px de haut, les lignes de commande déjà saisies étaient
+     impossibles à parcourir au doigt sur téléphone. */
+  .commande-lignes{ display:flex; flex-direction:column; gap:5px; }
   .ligne-article{
     display:flex; align-items:center; gap:8px; padding:6px 8px; border-radius:6px;
     background:var(--surface-2); border:1px solid var(--line); font-size:.82rem;
@@ -668,7 +717,7 @@
     volontaire du 27/07). La lecture photo ne fonctionne que sur le vrai site déployé, pas dans un aperçu
     Claude. Les données restent uniquement dans ce navigateur pour l'instant (rien n'est partagé ni
     sauvegardé ailleurs).
-    <p class="version-tag mono">Version v16 · 28/07/2026 · Rapprochement commande/BL tolérant aux références et aux fautes de lecture</p>
+    <p class="version-tag mono">Version v17 · 28/07/2026 · Colonne montant exclue, lignes logistiques écartées, lisibilité et cadrage repris</p>
   </footer>
 </div>
 
@@ -714,7 +763,7 @@
 <div class="scrim" id="commandeScrim"></div>
 <div class="modal commande-modal" id="commandeModal" aria-hidden="true" role="dialog" aria-label="Commande et bons de livraison">
   <div class="modal-head">
-    <button type="button" class="btn-ghost retour-btn" id="commandeRetour">◀ Retour à la zone</button>
+    <button type="button" class="btn-ghost modal-retour" id="commandeRetour" title="Revenir aux affaires de la zone">◀ Retour</button>
     <h3 id="commandeTitre">Commande &amp; BL</h3>
     <button type="button" class="drawer-close" id="commandeClose" aria-label="Fermer">×</button>
   </div>
@@ -2020,14 +2069,23 @@
   // mesure que de vrais documents BCIG sont testés.
   // listes larges volontairement (majuscule/accents/pluriel déjà neutralisés par
   // normaliserEntete) : mieux vaut un alias de trop qu'une colonne jamais reconnue
+  // "montant" n'est pas une colonne qu'on lit : c'est une BORNE. Sans elle, la colonne
+  // quantité s'étendait sur une marge fixe qui mordait sur le montant, et « 4 » puis
+  // « 5,16 » se retrouvaient dans la même cellule (cas réel du BL du 28/07, semoule).
+  var ALIAS_MONTANT = [
+    "montant", "montantht", "montantttc", "prix", "prixunitaire", "prixunit", "pu", "pux",
+    "px", "total", "totalht", "totalttc", "valeur", "puht", "prixht", "net"
+  ];
   var CONFIG_COLONNES = {
     commande: {
       article: ["designation", "design", "desig", "article", "produit", "libelle", "denomination", "nom"],
-      quantite: ["qtecommandee", "quantitecommandee", "qtecommande", "qtecde", "qte", "qty", "quantite", "nombre", "nb"]
+      quantite: ["qtecommandee", "quantitecommandee", "qtecommande", "qtecde", "qte", "qty", "quantite", "nombre", "nb"],
+      montant: ALIAS_MONTANT
     },
     bl: {
       article: ["designation", "design", "desig", "article", "produit", "libelle", "denomination", "nom"],
-      quantite: ["qtelivree", "quantitelivree", "qtelivre", "qte", "qty", "quantite", "nombre", "nb"]
+      quantite: ["qtelivree", "quantitelivree", "qtelivre", "qte", "qty", "quantite", "nombre", "nb"],
+      montant: ALIAS_MONTANT
     }
   };
 
@@ -2043,9 +2101,9 @@
   }
 
   function trouverEnTetes(mots, cible){
-    var config = CONFIG_COLONNES[cible] || { article:[], quantite:[] };
+    var config = CONFIG_COLONNES[cible] || { article:[], quantite:[], montant:[] };
     var trouve = {};
-    ["article", "quantite"].forEach(function(role){
+    ["article", "quantite", "montant"].forEach(function(role){
       var candidats = config[role];
       for(var i = 0; i < candidats.length && !trouve[role]; i++){
         var alias = candidats[i];
@@ -2156,13 +2214,24 @@
     }
 
     var hauteurEntete = entetes.article.bbox.y1 - entetes.article.bbox.y0;
+
+    // Borne droite de la colonne quantité. En priorité l'en-tête du montant/prix quand il
+    // existe (borne exacte) ; sinon une marge PROPORTIONNELLE à la largeur de l'en-tête
+    // et non plus une valeur fixe en pixels, qui ne veut rien dire d'une photo à l'autre.
+    var largeurEnteteQte = entetes.quantite.bbox.x1 - entetes.quantite.bbox.x0;
+    var xQuantiteFin;
+    if(entetes.montant && entetes.montant.bbox.x0 > entetes.quantite.bbox.x1){
+      xQuantiteFin = entetes.montant.bbox.x0 - 2; // on s'arrête juste avant le montant
+    } else {
+      xQuantiteFin = entetes.quantite.bbox.x1 + Math.max(50, largeurEnteteQte * 2);
+    }
+
     return {
       ok: true,
       yEntete: Math.min(entetes.article.bbox.y1, entetes.quantite.bbox.y1),
       xArticleDebut: entetes.article.bbox.x0,
       xArticleFin: entetes.quantite.bbox.x0,
-      // marges généreuses (les chiffres et le texte débordent souvent un peu de leur en-tête)
-      xQuantiteFin: entetes.quantite.bbox.x1 + 250,
+      xQuantiteFin: xQuantiteFin,
       margeGaucheArticle: 40,
       // tolérance ADAPTÉE à la taille réelle du texte de l'en-tête (pas une valeur fixe en
       // pixels qui ne veut rien dire d'une photo à l'autre selon le zoom/la résolution) :
@@ -2266,14 +2335,30 @@
   // on écarte le libellé seul, pas une désignation qui contiendrait le mot.
   var MOTS_HORS_TABLEAU = [
     "total", "totaux", "tva", "ht", "ttc", "page", "signature", "cachet",
-    "port", "franco", "remise", "acompte", "net", "montant", "soustotal", "sous"
+    "port", "franco", "remise", "acompte", "net", "montant", "soustotal", "sous",
+    // lignes logistiques : un contenant consigné n'est pas une marchandise commandée
+    // (cas réel du 28/07 : « PALETTE » comptée comme un article livré en quantité 1)
+    "palette", "palettes", "emballage", "consigne", "colis", "carton", "contenant"
   ];
+
+  // Lignes rédigées en toutes lettres (commentaires, mentions de service) : elles ne se
+  // reconnaissent pas à un libellé isolé mais à une expression NOYÉE dans la phrase, donc
+  // recherche par inclusion et non par égalité.
+  // Cas réel du 28/07 : « Sera livré à la prochaine tournée », capté comme un article.
+  var EXPRESSIONS_HORS_TABLEAU = [
+    "seralivre", "seronlivre", "seratlivre", "prochainetournee", "prochainelivraison",
+    "prochainpassage", "alivrerulterieurement", "veuillez", "merci", "observation",
+    "remarque", "commentaire", "nosconditions", "bonpouraccord"
+  ];
+
   function estLigneHorsTableau(article){
     var norm = normaliserEntete(article);
     if(norm.length < 3) return true; // pas de lettres, ou trop court pour être un article
-    return MOTS_HORS_TABLEAU.some(function(mot){
+    var libelleSeul = MOTS_HORS_TABLEAU.some(function(mot){
       return norm === mot || (norm.indexOf(mot) === 0 && norm.length <= mot.length + 3);
     });
+    if(libelleSeul) return true;
+    return EXPRESSIONS_HORS_TABLEAU.some(function(exp){ return norm.indexOf(exp) !== -1; });
   }
 
   var SEUIL_CONFIANCE = 70; // en dessous, la ligne est signalée à relire, jamais supprimée
