@@ -81,6 +81,12 @@
     font-variant-numeric: tabular-nums;
   }
   a, button, input, select{ font-family:inherit; color:inherit; }
+  /* Le navigateur cache [hidden] avec un simple display:none, que N'IMPORTE quelle règle
+     de classe posant un display (ex. .relecture{display:flex}) écrase silencieusement.
+     Sans ce !important, masquer un bloc par l'attribut hidden ne fait rien du tout.
+     Bug vu le 28/07 (l'encadré de relecture restait affiché après l'ajout des lignes),
+     déjà rencontré à l'identique sur Stovo (écran de connexion, lot 9b). */
+  [hidden]{ display:none !important; }
   button{ cursor:pointer; }
   :focus-visible{ outline:2px solid var(--accent); outline-offset:2px; }
 
@@ -533,7 +539,10 @@
     flex-direction:column; gap:8px; background:color-mix(in srgb, var(--accent) 6%, var(--surface));
   }
   .relecture-statut{ margin:0; font-size:.78rem; color:var(--muted); }
-  .relecture-lignes{ display:flex; flex-direction:column; gap:6px; max-height:220px; overflow-y:auto; }
+  /* PAS de hauteur max ni de défilement propre ici (corrigé le 28/07) : la fenêtre scrolle
+     déjà (.modal), et un second défilement imbriqué dedans empêchait de faire défiler les
+     lignes au doigt sur téléphone. Un seul niveau de défilement, celui de la fenêtre. */
+  .relecture-lignes{ display:flex; flex-direction:column; gap:6px; }
   .ligne-relecture{ display:flex; gap:6px; align-items:center; }
   .ligne-relecture input[type="text"]{
     flex:1; padding:6px 8px; border-radius:6px; border:1px solid var(--line); background:var(--surface);
@@ -652,7 +661,7 @@
     volontaire du 27/07). La lecture photo ne fonctionne que sur le vrai site déployé, pas dans un aperçu
     Claude. Les données restent uniquement dans ce navigateur pour l'instant (rien n'est partagé ni
     sauvegardé ailleurs).
-    <p class="version-tag mono">Version v13 · 28/07/2026 · Image nettoyée, quantités relues en 2e passe, doutes signalés</p>
+    <p class="version-tag mono">Version v14 · 28/07/2026 · Défilement des lignes lues corrigé, encadré qui se referme après ajout</p>
   </footer>
 </div>
 
