@@ -522,6 +522,9 @@
     display:flex; align-items:center; justify-content:space-between; gap:8px; padding:6px 8px;
     border-radius:6px; font-size:.82rem; border:1px solid transparent;
   }
+  /* libellé du BL rattaché à un libellé de commande différent : affiché pour que le
+     rapprochement reste vérifiable au lieu de se faire en coulisse */
+  .reste-variante{ font-size:.68rem; color:var(--muted); padding:0 8px 4px 18px; font-style:italic; }
   .ligne-reste.reste-complet{ background:color-mix(in srgb, var(--usinage) 16%, var(--surface)); color:var(--usinage); }
   .ligne-reste.reste-attente{ background:color-mix(in srgb, var(--warn) 16%, var(--surface)); color:var(--warn); }
   .ligne-reste.reste-anomalie{ background:color-mix(in srgb, var(--danger) 16%, var(--surface)); color:var(--danger); }
@@ -665,7 +668,7 @@
     volontaire du 27/07). La lecture photo ne fonctionne que sur le vrai site déployé, pas dans un aperçu
     Claude. Les données restent uniquement dans ce navigateur pour l'instant (rien n'est partagé ni
     sauvegardé ailleurs).
-    <p class="version-tag mono">Version v15 · 28/07/2026 · Lignes « non livrées » du BL détectées et jamais comptées comme reçues</p>
+    <p class="version-tag mono">Version v16 · 28/07/2026 · Rapprochement commande/BL tolérant aux références et aux fautes de lecture</p>
   </footer>
 </div>
 
@@ -1235,28 +1238,128 @@
   // toutes les lignes reçues (tous BL confondus) et en les comparant à la commande.
   // Un article reçu mais jamais commandé est signalé, jamais caché (même logique que les
   // anomalies déjà gérées ailleurs dans l'outil).
+  // --------------------------------------------------------------------------
+  // Rapprochement commande / BL (28/07). Avant, la comparaison se faisait sur le libellé
+  // EXACT : « BISCUITS SABLES 200G » et « BIS0200 BISCUITS SABLES 200G » comptaient pour
+  // deux articles différents, et l'outil annonçait à la fois « reste tout à livrer » et
+  // « reçu un article non commandé ». Une seule lettre mal lue par l'OCR suffisait.
+  //
+  // Règle de sûreté choisie, adaptée au câblage industriel : les CHIFFRES sont toujours
+  // discriminants (« CABLE 3G1.5 » et « CABLE 3G2.5 » sont deux produits différents à une
+  // lettre près, « 800G » et « 400G » aussi). On exige donc que tous les nombres du libellé
+  // soient identiques, et on ne tolère l'écart que sur le texte.
+  // En cas de doute on ne fusionne PAS : l'article ressort « hors commande », ce qui est
+  // visible et corrigeable, alors qu'une fusion à tort serait silencieuse et fausse.
+  // --------------------------------------------------------------------------
+  function normaliserArticle(texte){
+    return (texte || "")
+      .toLowerCase()
+      .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^a-z0-9.,]+/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+  }
+
+  // code article type BIS0200 / HAR0800 : des lettres PUIS des chiffres. Volontairement
+  // distinct d'un format comme « 200G » (chiffres puis lettre), qui n'est pas une référence.
+  function extraireReference(texteNormalise){
+    var tokens = texteNormalise.split(" ");
+    for(var i = 0; i < tokens.length; i++){
+      if(/^[a-z]{2,}\d{3,}$/.test(tokens[i])) return tokens[i];
+    }
+    return null;
+  }
+
+  // tous les nombres du libellé, triés : c'est la signature qui interdit de confondre
+  // deux conditionnements ou deux sections de câble
+  function signatureNombres(texteNormalise){
+    var trouves = texteNormalise.match(/\d+(?:[.,]\d+)?/g) || [];
+    return trouves.map(function(n){ return n.replace(",", "."); }).sort().join("|");
+  }
+
+  function distanceLevenshtein(a, b){
+    if(a === b) return 0;
+    if(!a.length) return b.length;
+    if(!b.length) return a.length;
+    var ligne = [];
+    for(var j = 0; j <= b.length; j++) ligne[j] = j;
+    for(var i = 1; i <= a.length; i++){
+      var precedent = ligne[0];
+      ligne[0] = i;
+      for(var k = 1; k <= b.length; k++){
+        var temp = ligne[k];
+        ligne[k] = Math.min(
+          ligne[k] + 1,
+          ligne[k-1] + 1,
+          precedent + (a.charAt(i-1) === b.charAt(k-1) ? 0 : 1)
+        );
+        precedent = temp;
+      }
+    }
+    return ligne[b.length];
+  }
+
+  var SEUIL_SIMILARITE = 0.85; // strict : mieux vaut ne pas rapprocher que rapprocher à tort
+
+  function memeArticle(a, b){
+    var na = normaliserArticle(a), nb = normaliserArticle(b);
+    if(!na || !nb) return false;
+    if(na === nb) return true;
+
+    // une référence article identique des deux côtés tranche à elle seule
+    var refA = extraireReference(na), refB = extraireReference(nb);
+    if(refA && refB) return refA === refB;
+
+    // La référence est retirée AVANT toute comparaison de nombres : ses chiffres
+    // identifient un code fournisseur, ils ne décrivent pas le produit. Sans ça, le
+    // « 0200 » de BIS0200 comptait comme une contenance et empêchait le rapprochement
+    // avec la même ligne sans référence (cas réel du BL du 28/07).
+    var texteA = refA ? na.replace(refA, "").replace(/\s+/g, " ").trim() : na;
+    var texteB = refB ? nb.replace(refB, "").replace(/\s+/g, " ").trim() : nb;
+
+    // garde-fou : des nombres différents = des produits différents, sans discussion
+    if(signatureNombres(texteA) !== signatureNombres(texteB)) return false;
+    if(texteA === texteB) return true;
+
+    var maxLong = Math.max(texteA.length, texteB.length);
+    if(maxLong === 0) return false;
+    return (1 - distanceLevenshtein(texteA, texteB) / maxLong) >= SEUIL_SIMILARITE;
+  }
+
   function resteALivrer(affaire){
-    var commandeParArticle = {};
+    // la commande fait autorité : chaque ligne reçue vient s'y rattacher quand c'est sûr,
+    // sinon elle reste signalée hors commande
+    var groupes = [];
+    function trouverGroupe(article){
+      return groupes.find(function(g){ return memeArticle(g.article, article); }) || null;
+    }
+
     (affaire.commande || []).forEach(function(l){
-      commandeParArticle[l.article] = (commandeParArticle[l.article] || 0) + l.quantite;
+      var g = trouverGroupe(l.article);
+      if(g) g.commande += l.quantite;
+      else groupes.push({ article:l.article, commande:l.quantite, recu:0, variantes:[] });
     });
-    var recuParArticle = {};
+
     (affaire.receptionsLignes || []).forEach(function(l){
-      recuParArticle[l.article] = (recuParArticle[l.article] || 0) + l.quantite;
+      var g = trouverGroupe(l.article);
+      if(!g){
+        groupes.push({ article:l.article, commande:0, recu:l.quantite, variantes:[] });
+        return;
+      }
+      g.recu += l.quantite;
+      // libellé rapproché mais pas identique : on le garde pour pouvoir le montrer,
+      // le rapprochement ne doit jamais être invisible
+      if(normaliserArticle(g.article) !== normaliserArticle(l.article) && g.variantes.indexOf(l.article) === -1){
+        g.variantes.push(l.article);
+      }
     });
 
-    var articles = Object.keys(commandeParArticle);
-    Object.keys(recuParArticle).forEach(function(a){
-      if(articles.indexOf(a) === -1) articles.push(a);
-    });
-
-    return articles.map(function(article){
-      var qCommande = commandeParArticle[article] || 0;
-      var qRecu = recuParArticle[article] || 0;
+    return groupes.map(function(g){
       return {
-        article: article, commande: qCommande, recu: qRecu,
-        reste: Math.max(0, qCommande - qRecu),
-        horsCommande: qCommande === 0
+        article: g.article, commande: g.commande, recu: g.recu,
+        reste: Math.max(0, g.commande - g.recu),
+        horsCommande: g.commande === 0,
+        variantes: g.variantes
       };
     });
   }
@@ -1863,6 +1966,12 @@
         el("span", { text: l.article }),
         el("span", { class:"mono", text: texte })
       ]));
+      // un rapprochement n'est jamais muet : si le libellé du BL différait de celui de la
+      // commande, on montre lequel a été rattaché, pour que l'erreur reste repérable
+      if(l.variantes && l.variantes.length > 0){
+        resteWrap.appendChild(el("div", { class:"reste-variante",
+          text:"↳ rapproché du BL : " + l.variantes.join(" · ") }));
+      }
     });
   }
 
